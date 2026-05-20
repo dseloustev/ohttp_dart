@@ -9,3 +9,7 @@ pubspec.lock
 .fvm/
 .idea/
 .vscode/
+
+# AI
+.mcp.json
+.claude/
