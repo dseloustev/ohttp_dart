@@ -37,16 +37,16 @@ ohttpEncapsulate()
 
 ## Tasks
 
-- [ ] 1.1 Read the full file (use `ast-index outline lib/src/hpke.dart` first, then read targeted slices).
-- [ ] 1.2 Verify that `LabeledExtract` and `LabeledExpand` match the labeled-KDF construction in RFC 9180 §4 (suite ID, label strings, lengths).
-- [ ] 1.3 Verify that `KEM Encap` matches RFC 9180 §4.1 (DH step, `ExtractAndExpand`, `shared_secret` derivation).
-- [ ] 1.4 Verify that `setupBaseS` key-schedule matches RFC 9180 §5.1 (`key_schedule_s`, `mode_base = 0`).
-- [ ] 1.5 Verify nonce derivation in `HpkeSenderContext.seal` matches RFC 9180 §5.2 (XOR of `baseNonce` with counter as big-endian `Nn`-byte integer).
-- [ ] 1.6 Verify `HpkeSenderContext.export` matches RFC 9180 §5.3 (`LabeledExpand(exporterSecret, "sec", context, L)`).
-- [ ] 1.7 Note whether `_seq` overflow guard throws a typed exception that callers can catch cleanly.
-- [ ] 1.8 Note the `testKeyPair` injection point: confirm it is reachable from production call sites (`setupBaseS` optional parameter).
-- [ ] 1.9 Note absence of zeroization for `key`, `baseNonce`, `exporterSecret` after use.
-- [ ] 1.10 Record each finding as a draft task entry (file, line range, RFC section, severity: BLOCKER / HIGH / IMPROVEMENT).
+- [x] 1.1 Read the full file (use `ast-index outline lib/src/hpke.dart` first, then read targeted slices).
+- [x] 1.2 Verify that `LabeledExtract` and `LabeledExpand` match the labeled-KDF construction in RFC 9180 §4 (suite ID, label strings, lengths).
+- [x] 1.3 Verify that `KEM Encap` matches RFC 9180 §4.1 (DH step, `ExtractAndExpand`, `shared_secret` derivation).
+- [x] 1.4 Verify that `setupBaseS` key-schedule matches RFC 9180 §5.1 (`key_schedule_s`, `mode_base = 0`).
+- [x] 1.5 Verify nonce derivation in `HpkeSenderContext.seal` matches RFC 9180 §5.2 (XOR of `baseNonce` with counter as big-endian `Nn`-byte integer).
+- [x] 1.6 Verify `HpkeSenderContext.export` matches RFC 9180 §5.3 (`LabeledExpand(exporterSecret, "sec", context, L)`).
+- [x] 1.7 Note whether `_seq` overflow guard throws a typed exception that callers can catch cleanly.
+- [x] 1.8 Note the `testKeyPair` injection point: confirm it is reachable from production call sites (`setupBaseS` optional parameter).
+- [x] 1.9 Note absence of zeroization for `key`, `baseNonce`, `exporterSecret` after use.
+- [x] 1.10 Record each finding as a draft task entry (file, line range, RFC section, severity: BLOCKER / HIGH / IMPROVEMENT).
 
 ## Acceptance Criteria
 
