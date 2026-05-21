@@ -10,7 +10,7 @@ Based on [vision.md](./vision.md).
 |---|-----------|--------|-------|
 | 1 | Read HPKE layer and compare with RFC 9180 | ✅ Done | 10/10 |
 | 2 | Read BHTTP layer and assess parser robustness | ✅ Done | 8/8 |
-| 3 | Read OHTTP layer and assess encap/decap correctness | ⬜ Pending |  |
+| 3 | Read OHTTP layer and assess encap/decap correctness | ✅ Done | 11/11 |
 | 4 | Read client layer and assess network reliability and KeyConfig lifecycle | ⬜ Pending |  |
 | 5 | Review test suite coverage gaps | ⬜ Pending |  |
 | 6 | Review privacy risks, observability gaps, and documentation | ⬜ Pending |  |
@@ -18,7 +18,7 @@ Based on [vision.md](./vision.md).
 
 **Legend:** ⬜ Pending | 🔄 In Progress | ✅ Done | ❌ Blocked
 
-**Current Phase:** 3
+**Current Phase:** 4
 
 ---
 
@@ -47,14 +47,14 @@ Based on [vision.md](./vision.md).
 **Goal:** Audit `lib/src/bhttp.dart` against RFC 9292 to identify length-guard gaps and malformed-input risks.
 
 ### `lib/src/bhttp.dart`
-- [ ] Read the full file (use `ast-index outline` first).
-- [ ] Verify that the framing indicator byte (`0x00` for request, `0x01` for response) is validated; confirm behavior on unexpected indicator values.
-- [ ] Trace `parseResponse`: check whether `statusCode` is range-validated after varint decode (valid HTTP status is 100–599).
-- [ ] Trace `parseResponse` header loop: confirm there is no max-header-count guard and no total-size cap.
-- [ ] Trace the `body` sublist extraction: confirm it raises `RangeError` (not `FormatException`) on truncated input.
-- [ ] Verify varint decode (`decodeVarint`) handles all four QUIC length prefixes (1/2/4/8 bytes) and rejects buffers shorter than the declared length.
-- [ ] Confirm `serializeRequest` has no upper-bound check on body size before writing to the buffer.
-- [ ] Record each finding as a draft task entry (file, line range, RFC section or DoS scenario, severity).
+- [x] Read the full file (use `ast-index outline` first).
+- [x] Verify that the framing indicator byte (`0x00` for request, `0x01` for response) is validated; confirm behavior on unexpected indicator values.
+- [x] Trace `parseResponse`: check whether `statusCode` is range-validated after varint decode (valid HTTP status is 100–599).
+- [x] Trace `parseResponse` header loop: confirm there is no max-header-count guard and no total-size cap.
+- [x] Trace the `body` sublist extraction: confirm it raises `RangeError` (not `FormatException`) on truncated input.
+- [x] Verify varint decode (`decodeVarint`) handles all four QUIC length prefixes (1/2/4/8 bytes) and rejects buffers shorter than the declared length.
+- [x] Confirm `serializeRequest` has no upper-bound check on body size before writing to the buffer.
+- [x] Record each finding as a draft task entry (file, line range, RFC section or DoS scenario, severity).
 
 **Test:** No code is changed. Verification is: each finding cites a specific line in `bhttp.dart` and a concrete malformed-input scenario (e.g., "truncated body at line 87 raises `RangeError` instead of `FormatException`").
 
@@ -65,17 +65,17 @@ Based on [vision.md](./vision.md).
 **Goal:** Audit `lib/src/ohttp.dart` against RFC 9458 to identify AAD deviations, response-decap correctness, and KeyConfig parser gaps.
 
 ### `lib/src/ohttp.dart`
-- [ ] Read the full file (use `ast-index outline` first).
-- [ ] Trace `OhttpKeyConfig.parse`: confirm the wire layout matches RFC 9458 §4.1 (key ID 1 B, KEM ID 2 B, public key `Npk` B, `symLen` 2 B, KDF+AEAD pairs).
-- [ ] Confirm that when `symLen > 4` the parser reads only the first KDF+AEAD pair and silently ignores the rest — note this as a finding.
-- [ ] Confirm that a short buffer with large `symLen` raises `RangeError`, not `FormatException` — note the exact throw site.
-- [ ] Note the inconsistency: `parse()` throws `FormatException` for unknown KEM, but `validate()` throws `UnsupportedError` for same condition.
-- [ ] Trace `ohttpEncapsulate`: verify HPKE info string construction (`"message/bhttp request" || 0x00 || header`) against RFC 9458 §4.3.
-- [ ] Confirm that AAD passed to `ctx.seal` is empty (`[]`) and cross-reference with RFC 9458 §4.3 wording; note the intentional deviation (matches Go reference implementation).
-- [ ] Trace `ohttpDecapsulate`: verify response HKDF usage — confirm it is plain (unlabeled) `HKDF-Extract(salt=enc||response_nonce, ikm=exportedSecret)` and `HKDF-Expand` for key/nonce derivation per RFC 9458 §4.4.
-- [ ] Confirm response AEAD also uses empty AAD.
-- [ ] Note that `SecretBoxAuthenticationError` (a `package:cryptography` type) propagates unwrapped to callers.
-- [ ] Record each finding as a draft task entry (file, line range, RFC section, severity).
+- [x] Read the full file (use `ast-index outline` first).
+- [x] Trace `OhttpKeyConfig.parse`: confirm the wire layout matches RFC 9458 §4.1 (key ID 1 B, KEM ID 2 B, public key `Npk` B, `symLen` 2 B, KDF+AEAD pairs).
+- [x] Confirm that when `symLen > 4` the parser reads only the first KDF+AEAD pair and silently ignores the rest — note this as a finding.
+- [x] Confirm that a short buffer with large `symLen` raises `RangeError`, not `FormatException` — note the exact throw site.
+- [x] Note the inconsistency: `parse()` throws `FormatException` for unknown KEM, but `validate()` throws `UnsupportedError` for same condition.
+- [x] Trace `ohttpEncapsulate`: verify HPKE info string construction (`"message/bhttp request" || 0x00 || header`) against RFC 9458 §4.3.
+- [x] Confirm that AAD passed to `ctx.seal` is empty (`[]`) and cross-reference with RFC 9458 §4.3 wording; note the intentional deviation (matches Go reference implementation).
+- [x] Trace `ohttpDecapsulate`: verify response HKDF usage — confirm it is plain (unlabeled) `HKDF-Extract(salt=enc||response_nonce, ikm=exportedSecret)` and `HKDF-Expand` for key/nonce derivation per RFC 9458 §4.4.
+- [x] Confirm response AEAD also uses empty AAD.
+- [x] Note that `SecretBoxAuthenticationError` (a `package:cryptography` type) propagates unwrapped to callers.
+- [x] Record each finding as a draft task entry (file, line range, RFC section, severity).
 
 **Test:** No code is changed. Verification is: the empty-AAD finding and the plain-HKDF-vs-labeled-HKDF finding each cite the exact line in `ohttp.dart` plus the RFC 9458 section that motivates the concern.
 
