@@ -132,11 +132,206 @@ No severity drift. The "Resolved Questions" table successfully fixes the PRD's o
 
 ---
 
-## Files referenced (absolute paths)
+## Files referenced
 
-- /Users/comrade77/Documents/Performix/Projects/ohttp_dart/specs/.current/AW-2865/phase-1/prd.md
-- /Users/comrade77/Documents/Performix/Projects/ohttp_dart/specs/.current/AW-2865/phase-1/plan.md
-- /Users/comrade77/Documents/Performix/Projects/ohttp_dart/specs/.current/AW-2865/phase-1/research.md
-- /Users/comrade77/Documents/Performix/Projects/ohttp_dart/specs/.current/AW-2865/phase-1/tasks.md
-- /Users/comrade77/Documents/Performix/Projects/ohttp_dart/specs/.current/AW-2865/vision.md
-- /Users/comrade77/Documents/Performix/Projects/ohttp_dart/lib/src/hpke.dart
+- specs/.current/AW-2865/phase-1/prd.md
+- specs/.current/AW-2865/phase-1/plan.md
+- specs/.current/AW-2865/phase-1/research.md
+- specs/.current/AW-2865/phase-1/tasks.md
+- specs/.current/AW-2865/vision.md
+- lib/src/hpke.dart
+
+---
+---
+
+# Phase 2 Review — AW-2865 BHTTP Layer Audit
+
+**Subject:** Phase 2 deliverables for ticket AW-2865 (BHTTP layer audit against RFC 9292).
+**Reviewer:** Code review agent (read-only audit verification).
+**Reviewed artifacts:**
+- `specs/.current/AW-2865/phase-2/prd.md`
+- `specs/.current/AW-2865/phase-2/plan.md`
+- `specs/.current/AW-2865/phase-2/research.md`
+- `specs/.current/AW-2865/phase-2/tasks.md`
+- `specs/.current/AW-2865/idea.md` and `vision.md` (Iteration 2 / §5.6 reference)
+- `lib/src/bhttp.dart` (audited subject, read-only verification)
+
+---
+
+## Overall Verdict
+
+**APPROVED with notes.** Phase 2 meets all PRD success criteria. Every parsing surface (2.2–2.7) has a per-task finding grounded in a concrete `bhttp.dart` line citation, all 8 checklist items are marked `[x]` in `phase-2/tasks.md`, no source under `lib/` or `test/` was modified, and the deliverable shape mirrors Phase 1 (per-task verdicts → risks table → draft task entries).
+
+There are **no Blocking issues**. There are **three Important findings** centered on severity-discipline drift between `tasks.md` and `research.md` (the same finding is classified at different severities in the two files), and one Important finding about scope drift in TASK-B6. Several Nice-to-have items follow.
+
+---
+
+## Acceptance criteria verification (against `phase-2/prd.md` Success / Metrics table)
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| All RFC 9292 parsing surfaces covered (2.2–2.7 each have a verdict + cited line) | PASS | `research.md` lines 87–285 contain a per-task block for each of 2.2–2.7. Tasks 2.2 (framing), 2.3 (status), 2.4 (header loop), 2.5 (body sublist), 2.6 (varint), 2.7 (serializeRequest) each have a bolded **Verdict** line and a `bhttp.dart:NNN` reference. |
+| Framing indicator behavior documented | PASS | `research.md` task 2.2 (lines 89–107) cites `bhttp.dart:140–146` and quotes the exact `FormatException('Expected known-length response (framing=1), got $framing')` throw. Verdict: "guard present and correct". |
+| Every finding has a severity | PASS for `research.md` (R-1..R-7 all carry HIGH or IMPROVEMENT). See "Severity-discipline drift" below for inconsistencies between `tasks.md` and `research.md` on individual findings. |
+| No code changes | PASS | `git diff HEAD -- lib/ test/ pubspec.yaml example/` is empty. Only modifications are to `specs/.current/.active_ticket`, `specs/.current/AW-2865/phase-2/tasks.md`, and the three untracked phase-2 spec files (`prd.md`, `plan.md`, `research.md`). |
+| Draft tasks independently actionable | PASS | TASK-B1..TASK-B7 each carry a single file:line target and concrete remediation directions. TASK-B5 explicitly notes the layer-ownership ambiguity (BHTTP vs. `OhttpClient`) inline, consistent with resolved-question Q2. TASK-B6 depends on TASK-B3 and TASK-B4 for "post-fix" assertions — this dependency is called out inline (research.md line 374). |
+| Exception-type mismatch confirmed | PASS | Task 2.5 verdict at `research.md` line 182 explicitly traces the call stack `bhttp.dart:187 → ohttp_client.dart:136 → caller` and confirms `RangeError` propagates unwrapped. The Dart semantics note (`RangeError extends Error, not Exception`) is at line 198. |
+
+All six PRD success criteria are satisfied. The audit deliverable is complete.
+
+---
+
+## Line-reference spot-check against `lib/src/bhttp.dart`
+
+I re-read the source (191 lines, no `ast-index outline` needed) and verified the key line references:
+
+| Reference | Verified content in `bhttp.dart` | Status |
+|---|---|---|
+| `bhttp.dart:140–146` (framing indicator) | Lines 140–146 contain `final (framing, framingLen) = decodeVarint(data, offset);`, `offset += framingLen;`, and the `if (framing != 1) throw FormatException(...)` block. Matches research.md exactly. | PASS |
+| `bhttp.dart:148–162` (tasks.md) vs. `bhttp.dart:149–163` (research.md) — 1xx skip loop | Source lines 148–162 contain the `// Skip informational responses (1xx)` comment, the `int statusCode; int statusLen;` declarations, and the `while (true) { ... }` block ending at the closing brace on line 162. **`tasks.md` uses the correct range (148–162); `research.md` is off by one (149–163).** | PASS (with off-by-one in research.md) |
+| `bhttp.dart:164–182` (tasks.md) vs. `bhttp.dart:165–182` (research.md) — header loop | Source line 164 is the `// Header section` comment; line 165 is the `decodeVarint(data, offset)` call for `headersLen`. **Same off-by-one as above.** | PASS (off-by-one in research.md) |
+| `bhttp.dart:184–187` (tasks.md) vs. `bhttp.dart:187` (research.md) — body sublist | Source line 184 is `// Content`, 185 is the `contentLen` decode, 187 is `data.sublist(offset, offset + contentLen)`. Both citations resolve correctly; `tasks.md` is broader (whole content block), `research.md` is the precise throw site. | PASS |
+| `bhttp.dart:44–67` — `decodeVarint` | All four prefix branches at lines 47–66, with `data[offset + 1]` / `data[offset + 2..3]` / `data[offset + 1..7]` reads as research.md describes. The `default: throw StateError('unreachable')` is at line 65. | PASS |
+| `bhttp.dart:74–111` — `serializeRequest` | Function signature at 74; framing indicator write at 85 (`buf.add(encodeVarint(0));`); body write at 104–105 (`buf.add(encodeVarint(body.length)); if (body.isNotEmpty) buf.add(body);`); `_writeField` helper at 113–116. Matches research.md. | PASS |
+| `bhttp.dart:113–116` — `_writeField` helper (referenced in plan.md and research.md) | Confirmed correct. | PASS |
+| `bhttp.dart:187` — body sublist (`Uint8List.fromList(data.sublist(...))`) | Confirmed. The wrapping `Uint8List.fromList(...)` does not catch the underlying `RangeError`. | PASS |
+
+All findings' line ranges resolve to the claimed code. The off-by-one drift between `tasks.md` and `research.md` for tasks 2.3 and 2.4 is cosmetic — both ranges encompass the cited construct — but worth tightening.
+
+---
+
+## Findings (priority taxonomy)
+
+### Blocking
+None.
+
+### Important
+
+1. **Severity-discipline drift between `tasks.md` and `research.md` for the same finding (PRD criterion "Every finding has a severity" technically passes per file, but the two files disagree).**
+   - **Status code range (task 2.3).** `tasks.md` line 68 classifies F2.3 as `IMPROVEMENT` ("does not enable DoS or memory exhaustion; consumer-side concern"). `research.md` R-1 (line 291) classifies the same finding as `HIGH`. Vision §5.6 lists "No range validation after varint decode" as a `BhttpResponse.statusCode` concern but does not pin a severity for it in §5's cross-cutting concerns table; only "No size caps on response body / headers" and "`RangeError` instead of `FormatException` on truncated BHTTP body" are listed as HIGH. Decision: the analyst should pick one severity and propagate consistently. The downstream Jira import will use the `research.md` draft task entry (TASK-B1, HIGH), so `tasks.md` F2.3 should be raised to HIGH or the Iteration 7 reviewer should be made aware of the discrepancy.
+   - **Body size cap in `serializeRequest` (task 2.7).** `tasks.md` line 110 classifies F2.7 as `IMPROVEMENT→HIGH for wallet`. `research.md` R-5 (line 295) and TASK-B5 (line 364) classify it as `HIGH` plainly. Vision §6.1 has the inline `[CONCERN] No upper-bound on body size before serialization` but does not assign a severity. The PRD's NFR "Severity discipline" (plan.md line 163) explicitly forbids "TBD"; the conditional `IMPROVEMENT→HIGH for wallet` notation in `tasks.md` is arguably a TBD in disguise. Recommend collapsing to a single `HIGH` (matching research.md and the wallet-use deployment context that is the entire investigation's premise).
+   - **Framing indicator (task 2.2).** `tasks.md` line 59 classifies it as `IMPROVEMENT` based on the adjacent empty-buffer `RangeError` concern. `research.md` records no severity for task 2.2 because the verdict is "guard present and correct" — the empty-buffer concern is rerouted exclusively through task 2.5 / R-3 / TASK-B3. Both treatments are defensible, but the tasks.md "IMPROVEMENT" label is misleading because the framing-indicator guard itself is correct. Recommend either (a) drop the severity from `tasks.md` task 2.2 (and route the empty-buffer note as a sub-bullet of task 2.5), or (b) explicitly note in `tasks.md` that the IMPROVEMENT severity refers only to the empty-buffer-RangeError aspect.
+
+2. **`tasks.md` lists 10 findings (F2.3, F2.4a, F2.4b, F2.4c, F2.5a, F2.5b, F2.5c, F2.6a, F2.6b, F2.7) but `research.md` consolidates into 7 draft tasks (TASK-B1..TASK-B7).**
+   The consolidation is explicit and justifiable — TASK-B3 covers both body sublist (F2.5a) and header sublist (F2.5b) in one task because they share a single remediation (`_safeSublist` helper); TASK-B4 covers all three varint widths (F2.6a) in a single task because they share the same `if (offset + N > data.length) throw FormatException(...)` pattern. `tasks.md` line 128 acknowledges this: "F2.5* and F2.6a together motivate a single shared helper rather than per-call-site guards; this should be one engineering task in Iteration 7, not seven." However, **F2.4a, F2.4b, F2.4c are three distinct DoS surfaces (oversized `headersLen`, large header count, single oversized header value)** that all map to research.md's single TASK-B2. The PRD success criterion "Independent actionability" is satisfied because one engineer can implement all three guards in one PR, but a reviewer triaging the Jira import should be aware that TASK-B2 encompasses three independent guards. **Recommendation:** either split TASK-B2 into TASK-B2a (max `headersLen`), TASK-B2b (max header count), TASK-B2c (max single-field length), or add a sub-bullet list inside TASK-B2's description enumerating the three guards. The current TASK-B2 text in research.md mentions (1) and (2) explicitly but only obliquely covers (3) ("optionally, a maximum header-count check"). The single-oversized-header DoS (F2.4c — `nameLen = 1, valueLen = 2^30 - 1`) is the most novel of the three and risks being lost.
+
+3. **TASK-B6 scope drift — test-gap task severity.** `research.md` TASK-B6 (line 371) classifies "negative tests for truncated input and adversarial inputs in `bhttp_test.dart`" as `HIGH`. Phase 1's analogous test-gap finding (F-6, F-7 in Phase 1 research) was classified as `HIGH` only for F-7 (empty-AAD integration gap) and `IMPROVEMENT` for the rest. Vision §2's severity model defines `HIGH` as "should fix before wallet use" — the absence of negative tests is a regression-risk concern, not a runtime-DoS concern, so the wallet-use blocker rationale is weaker than for the runtime-impact findings (R-1..R-5). Recommend either downgrading TASK-B6 to `IMPROVEMENT` (consistent with Phase 1's treatment of test gaps) or adding a rationale in the TASK-B6 description explaining why this specific test gap is HIGH while Phase 1's analogous gaps were IMPROVEMENT. Without this, severity discipline is inconsistent across phases.
+
+### Nice-to-have (audit-quality polish — not required for phase close)
+
+1. **Off-by-one line drift between `tasks.md` and `research.md` for tasks 2.3 (148–162 vs. 149–163) and 2.4 (164–182 vs. 165–182).** Both ranges encompass the cited construct so the citation is correct in both, but Jira-import consistency would benefit from a single canonical range. Pick whichever is preferred and propagate.
+
+2. **`research.md` "Resolved Questions" table line 33 says "Framing indicator IS validated (finding F-B1 is positive)" but no `F-Bn` IDs are used elsewhere in the file.** The Phase 1 convention is `F-1..F-7`; Phase 2 uses `R-1..R-7` and `TASK-B1..TASK-B7`. The stray `F-B1` reference appears to be a leftover from an earlier draft. Recommend either introducing a consistent `F-Bn` system for positive verdicts (parallel to `R-n` for negative verdicts) or removing the orphan reference.
+
+3. **Trailer section silent drop (research.md New Technical Question #4) deserves promotion to a finding.** RFC 9292 §3.4 defines the trailer section as part of the Known-Length response wire format. `parseResponse` reads through the body sublist and returns immediately — any trailing bytes are silently discarded. The plan.md risk R-8 (line 181) explicitly flags this as a candidate finding pending an "intent" decision. Recommendation: either promote it to R-8 / TASK-B8 with severity `IMPROVEMENT` (matches the framing-correctness rather than DoS-risk pattern) or explicitly defer to Phase 5 with a one-line note in `research.md`. Leaving it in "New Technical Questions" risks loss during Iteration 7 compilation — the same concern raised in the Phase 1 review for `export()` length validation.
+
+4. **8-byte varint test (TASK-B7) bundles two concerns: missing test + dart2js integer semantics.** The first (no 8-byte test vector) is a pure test-suite gap (IMPROVEMENT). The second (53-bit safe-int range under dart2js / dart2wasm) is a platform-support documentation question that depends on whether `ohttp_dart` is ever deployed in a web context. Vision §3 and `CLAUDE.md` say "Pure-Dart implementation … runs on plain Dart VM" but do not exclude dart2js. Bundling these two concerns in one task means an engineer picking up TASK-B7 may implement only the test and miss the documentation/runtime-support question, or vice versa. Recommend splitting into TASK-B7a (add 8-byte varint round-trip test) and TASK-B7b (document platform support; verify dart2js behavior or pin to VM in `pubspec.yaml`/README). Cross-reference Phase 1 New Technical Question #3 if it surfaces the same dart2js concern.
+
+5. **`research.md` line 33 description of resolved-question Q1 is slightly self-contradictory.** It says "Severity classification for the absence of a guard in the hypothetical case is moot; the guard exists." This is correct — but then `tasks.md` line 59 still assigns severity `IMPROVEMENT` to task 2.2 (for the empty-buffer concern). The two files have drifted on whether 2.2 has a severity at all. See Important finding #1 above for the consolidated recommendation.
+
+6. **No `phase-2/qa.md` exists.** Plan.md line 44 lists `phase-2/qa.md` as a deliverable artifact; plan.md DoD item 4 (line 259) says "Phase 2 QA report (`phase-2/qa.md`) confirms each PRD success criterion is met." This review serves the QA function but is being appended to `specs/.current/AW-2865/review.md` per the caller's instructions, not written to `phase-2/qa.md`. If the workflow distinguishes between a code-review-agent output and a phase-QA artifact, the QA file may still need to be produced separately. Same observation was made on Phase 1 — consistent treatment between phases.
+
+7. **TASK-B5 layer-ownership decision is correctly left open per resolved-question Q2, but `serializeRequest` is the natural enforcement point because it owns the buffer construction.** Research.md TASK-B5 says "either BHTTP layer with a parameter, or `OhttpClient` layer with a hard-coded or config-driven limit". A `[NOTE: Phase 5 will decide]` cross-link would harden the handoff and prevent the engineer picking up TASK-B5 from re-litigating the decision in isolation. Phase 5 (`ohttp_client.dart` audit) is the canonical place per plan.md "Downstream consumers" (line 228).
+
+---
+
+## Cross-checks against the PRD scenarios
+
+| Scenario | Mapped task | Mapped finding(s) | Status |
+|---|---|---|---|
+| S1 — Framing indicator validation | 2.2 | research.md task 2.2 verdict (positive, no R-n row) | Verified |
+| S2 — Status code range validation | 2.3 | R-1 / TASK-B1 | Verified (severity drift — see Important #1) |
+| S3 — Header loop size guards | 2.4 | R-2 / TASK-B2 | Verified (sub-finding consolidation — see Important #2) |
+| S4 — Body sublist truncation exception type | 2.5 | R-3 / TASK-B3 (+ header-sublist applied to F2.5b) | Verified |
+| S5 — `decodeVarint` correctness + truncation | 2.6 | research.md task 2.6 verdict (correctness positive) + R-4 / TASK-B4 (truncation negative) | Verified |
+| S6 — `serializeRequest` body size guard | 2.7 | R-5 / TASK-B5 | Verified (severity drift — see Important #1) |
+| S7 — Draft task entry compilation | 2.8 | TASK-B1..TASK-B7 | Verified |
+
+Every PRD scenario has a corresponding research artifact and (where applicable) a draft Jira task entry. The vision §4 scrutiny-table row for `bhttp.dart` ("No length guards", "No negative-case tests") is addressed by R-2/R-4/R-5 (length guards) and R-6/R-7 (negative-case tests) — both halves covered, per plan.md DoD item 6.
+
+---
+
+## Cross-phase reference verification
+
+Plan.md "Cross-reference contract" (lines 88–94) requires that compounding Phase 1 risks be cited by ID. Verified:
+
+| Phase 2 finding | Cited Phase 1 ID | Status |
+|---|---|---|
+| R-3 (RangeError on truncated body) | Phase 1 F-3 (StateError on HPKE overflow) — same untyped-error anti-pattern | Cited at `research.md` line 305 |
+| R-5 (no body size cap in `serializeRequest`) | Phase 1 F-2 (no size cap on `encRequest`) | Cited at `research.md` line 306 |
+| R-6 (no negative tests in `bhttp_test.dart`) | Phase 1 F-6, F-7 (test gaps) | Cited at `research.md` line 307 |
+
+All three required cross-references are present. The Phase 1 IDs (F-2, F-3, F-6, F-7) match the actual finding IDs in `specs/.current/AW-2865/phase-1/research.md` (verified during Phase 1 review). No drift.
+
+---
+
+## Read-only constraint verification
+
+```
+$ git diff HEAD -- lib/ test/ pubspec.yaml example/
+(empty)
+
+$ git status --short
+ M specs/.current/.active_ticket
+ M specs/.current/AW-2865/phase-2/tasks.md
+?? specs/.current/AW-2865/phase-2/plan.md
+?? specs/.current/AW-2865/phase-2/prd.md
+?? specs/.current/AW-2865/phase-2/research.md
+```
+
+All modifications are confined to `specs/.current/AW-2865/phase-2/` and the active-ticket pointer. PRD success criterion "No code changes" is satisfied. Plan.md NFR "Read-only guarantee" (line 159) is satisfied.
+
+---
+
+## Completeness check vs. `idea.md` and `vision.md` Iteration/Phase 2 scope
+
+| Source requirement | Coverage in Phase 2 deliverable | Status |
+|---|---|---|
+| `idea.md` investigation vector: "Robustness of parsers against malformed input and potential DoS scenarios" | All 7 R-rows and 7 TASK-B entries address parser-robustness / DoS scenarios | PASS |
+| `vision.md §4` scrutiny row: "No length guards against oversized frames" | R-2 (header loop), R-4 (varint truncation), R-5 (serializeRequest body cap) | PASS |
+| `vision.md §4` scrutiny row: "No negative-case tests for malformed input" | R-6 (test gap), TASK-B6 (negative test plan) | PASS |
+| `vision.md §5.6` `BhttpResponse.statusCode` concern: "No range validation after varint decode" | R-1 / TASK-B1 | PASS |
+| `vision.md §5.6` `BhttpResponse.headers` concern: "No max header-count or total-size guard" | R-2 / TASK-B2 | PASS |
+| `vision.md §5.6` `BhttpResponse.body` concern: "sublist throws RangeError on truncated input" | R-3 / TASK-B3 | PASS |
+| `vision.md §5` cross-cutting: "No size caps on response body / headers" — HIGH | R-2 (headers HIGH), R-5 (serializeRequest body HIGH) — note: response-body cap is `OhttpClient` / `OhttpResponse` concern in vision §5.5, deferred to Phase 5 | PASS (Phase 2 owns the request-body and header halves) |
+| `vision.md §5` cross-cutting: "RangeError instead of FormatException on truncated BHTTP body" — HIGH | R-3 (HIGH), R-4 (HIGH) | PASS |
+| `vision.md §6.1` happy-path concern: "No upper-bound on body size before serialization" | R-5 / TASK-B5 | PASS |
+
+Every Phase 2 scope item from the vision is addressed by at least one research finding. No gaps. The vision's HIGH-severity classifications for the two cross-cutting concerns in §5 are preserved in research.md (R-3, R-4, R-5 = HIGH; R-2 = HIGH). The drift identified in "Important #1" above relates to findings that the vision does *not* explicitly pre-classify (status code range, request body cap) — the disagreement is between `tasks.md` and `research.md`, not against the vision.
+
+---
+
+## Severity-discipline summary
+
+Per `vision.md §2` taxonomy:
+
+| Severity | research.md count | tasks.md count | Aligned? |
+|---|---|---|---|
+| BLOCKER | 0 | 0 | Yes |
+| HIGH | 6 (R-1..R-6) | 5 (F2.4a, F2.4b, F2.4c, F2.5a, F2.5b, F2.6a) | **No — disagreement on F2.3 (status code) and F2.7 (body cap)** |
+| IMPROVEMENT | 1 (R-7: 8-byte varint test) | 5 (F2.3, F2.5c, F2.6b, F2.7) | **No — same disagreement** |
+
+The aggregate severity counts differ because of the two disputed findings (F2.3 and F2.7). See Important finding #1 for the consolidation recommendation. Otherwise, severity discipline is internally consistent within each file.
+
+---
+
+## Summary for the engineering lead
+
+- Audit deliverable is **complete and consistent** with PRD acceptance criteria. All 8 checklist items are checked; all 6 parsing surfaces have verdicts and line citations; all 7 draft tasks (TASK-B1..TASK-B7) are independently actionable; no source under `lib/` or `test/` was modified.
+- **Six HIGH-severity items** (R-1 status code range, R-2 header loop guards, R-3 body sublist exception type, R-4 varint truncation, R-5 serializeRequest body cap, R-6 negative-test coverage) and **one IMPROVEMENT** (R-7 8-byte varint test) recommended for the follow-up backlog. No BLOCKER identified at the BHTTP layer.
+- **One severity-discipline action item before Iteration 7:** reconcile F2.3 (status code) and F2.7 (body cap) severities between `tasks.md` and `research.md`. The `research.md` HIGH classifications are the more defensible position given the wallet-use deployment context.
+- **One consolidation action item before Iteration 7:** ensure TASK-B2 (header loop) explicitly enumerates the three sub-DoS-vectors from `tasks.md` F2.4a/b/c (max `headersLen`, max header count, max single-field length). The single-oversized-header DoS (F2.4c) is the most novel and is currently underspecified in TASK-B2.
+- **One scope-clarification action item:** decide whether trailer-section silent-drop (research.md New Technical Question #4) is promoted to R-8 / TASK-B8 now or deferred to Phase 5. Same loose-end pattern as Phase 1's `export()` length question.
+- Phase 2 is ready to close pending (optional) production of `phase-2/qa.md` per the plan's Definition of Done item 4, and (recommended) resolution of the three action items above before Iteration 7 compiles the per-task Markdown files.
+
+---
+
+## Files referenced
+
+- specs/.current/AW-2865/phase-2/prd.md
+- specs/.current/AW-2865/phase-2/plan.md
+- specs/.current/AW-2865/phase-2/research.md
+- specs/.current/AW-2865/phase-2/tasks.md
+- specs/.current/AW-2865/idea.md
+- specs/.current/AW-2865/vision.md
+- lib/src/bhttp.dart

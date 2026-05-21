@@ -47,5 +47,6 @@ The public surface is re-exported from `lib/ohttp_dart.dart`.
 ## Project conventions
 
 - AST-index rules in `.claude/rules/ast-index.md` are loaded automatically — use `ast-index` before `grep` for symbol search.
+- Paths inside `specs/` artifacts must be repo-relative (no `/Users/...`, `/home/...`, `C:\...`) — see `.claude/agents/docs/path-conventions.md`. Tool arguments may still use absolute paths; the rule is about content written into committed artifacts.
 - `lib/ohttp_dart.dart` is the only public entry point; everything else in `lib/src/` is internal even though there's no `package:meta` enforcement.
 - Trailing commas are preserved by the formatter (`trailing_commas: preserve` in `analysis_options.yaml`) — keep them on multi-line argument lists.

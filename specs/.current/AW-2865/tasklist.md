@@ -9,7 +9,7 @@ Based on [vision.md](./vision.md).
 | # | Iteration | Status | Notes |
 |---|-----------|--------|-------|
 | 1 | Read HPKE layer and compare with RFC 9180 | ✅ Done | 10/10 |
-| 2 | Read BHTTP layer and assess parser robustness | ⬜ Pending |  |
+| 2 | Read BHTTP layer and assess parser robustness | ✅ Done | 8/8 |
 | 3 | Read OHTTP layer and assess encap/decap correctness | ⬜ Pending |  |
 | 4 | Read client layer and assess network reliability and KeyConfig lifecycle | ⬜ Pending |  |
 | 5 | Review test suite coverage gaps | ⬜ Pending |  |
@@ -18,7 +18,7 @@ Based on [vision.md](./vision.md).
 
 **Legend:** ⬜ Pending | 🔄 In Progress | ✅ Done | ❌ Blocked
 
-**Current Phase:** 2
+**Current Phase:** 3
 
 ---
 
