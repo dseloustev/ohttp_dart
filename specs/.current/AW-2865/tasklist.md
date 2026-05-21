@@ -18,7 +18,7 @@ Based on [vision.md](./vision.md).
 
 **Legend:** ⬜ Pending | 🔄 In Progress | ✅ Done | ❌ Blocked
 
-**Current Phase:** 5
+**Current Phase:** 6
 
 ---
 
