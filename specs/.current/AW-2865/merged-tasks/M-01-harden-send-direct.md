@@ -7,9 +7,9 @@
 
 ## Task Description
 
-A developer who constructs `OhttpGatewayConfig` with only the required parameters (omitting the optional `directBaseUrl`) and then calls `sendDirect()` issues plaintext HTTP directly to the relay host — no encryption, no unlinkability, no runtime signal that the OHTTP flow was bypassed. The silent `directBaseUrl ?? gatewayBaseUrl` fallback at `lib/src/ohttp_client.dart:52` converts a "comparison" helper into a privacy-breaking footgun.
+Currently, when `OhttpGatewayConfig` is constructed with only the required parameters (omitting the optional `directBaseUrl`), a subsequent call to `sendDirect()` issues plaintext HTTP directly to the relay host — no encryption, no unlinkability, no runtime signal that the OHTTP flow was bypassed. The silent `directBaseUrl ?? gatewayBaseUrl` fallback at `lib/src/ohttp_client.dart:52` turns a "comparison" helper into a privacy-breaking footgun.
 
-For a non-custodial crypto wallet, this is the difference between an unlinkable RPC call and a plaintext leak of wallet activity to the relay operator. The footgun is widened by the public getter `effectiveDirectBaseUrl` on the same line, which exposes the same `null → gatewayBaseUrl` resolution via IDE autocomplete and "what URL will be used?" debugging calls. The example file `example/ohttp_dart_example.dart` does not warn about any of this — a developer reading the example to learn the library is given no signal that `sendDirect()` is unsafe by default.
+For a non-custodial crypto wallet, this is the difference between an unlinkable RPC call and a plaintext leak of wallet activity to the relay operator. The footgun is widened by the public getter `effectiveDirectBaseUrl` on the same line, which exposes the same `null → gatewayBaseUrl` resolution as a callable, documented part of the public API. The example file `example/ohttp_dart_example.dart` does not warn about any of this — nothing in the example signals that `sendDirect()` is unsafe by default.
 
 ## Technical Details
 
@@ -22,13 +22,11 @@ The `sendDirect()` method currently carries a single doc line ("Send a direct HT
 Required:
 - The method must fail fast (assertion or thrown library-owned exception) when `directBaseUrl` is null or equal to `gatewayBaseUrl` — never silently send plaintext to the relay.
 - Add a `@Deprecated('...')` annotation that names the privacy impact.
-- The doc comment must explicitly state: no encryption, no unlinkability, and which OHTTP guarantees from RFC 9458 §1 are bypassed.
+- The doc comment must explicitly state that calling `sendDirect()` bypasses the OHTTP pipeline entirely — no HPKE encryption of the inner request, no relay indirection, no unlinkability — and must enumerate the RFC 9458 §1 guarantees the caller forfeits by choosing this path (confidentiality of the inner request from the relay operator, unlinkability between client identity and request content, metadata isolation from the target server's view of the client). This bullet covers the documentation of the deliberate-bypass method only; RFC 9458 compliance hardening of the actual `send()` pipeline is addressed in other tasks.
 
 **2. Remove or privatize the `effectiveDirectBaseUrl` public getter** (`lib/src/ohttp_client.dart:52`)
 
 The getter is currently the public surface that makes the silent fallback discoverable. Rename to `_effectiveDirectBaseUrl` (library-private) or move the resolution logic inline into the `sendDirect()` body at line 154 so the public surface never exposes the fallback by name. Update the constructor doc comment so it no longer references the fallback path as a public concept.
-
-The package is `publish_to: none` (unpublished), so breaking-change scope is internal consumers only.
 
 **3. Rework the example file** (`example/ohttp_dart_example.dart`)
 
