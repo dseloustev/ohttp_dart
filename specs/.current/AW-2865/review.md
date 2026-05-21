@@ -335,3 +335,197 @@ The aggregate severity counts differ because of the two disputed findings (F2.3 
 - specs/.current/AW-2865/idea.md
 - specs/.current/AW-2865/vision.md
 - lib/src/bhttp.dart
+
+---
+
+# Phase 3 Review — AW-2865 OHTTP Layer Audit
+
+**Subject:** Phase 3 deliverables for ticket AW-2865 (OHTTP encapsulation/decapsulation layer audit against RFC 9458).
+**Reviewer:** Code review agent (read-only audit verification).
+**Reviewed artifacts:**
+- specs/.current/AW-2865/phase-3/prd.md
+- specs/.current/AW-2865/phase-3/plan.md
+- specs/.current/AW-2865/phase-3/research.md
+- specs/.current/AW-2865/phase-3/tasks.md
+- specs/.current/AW-2865/vision.md (reference)
+- specs/.current/AW-2865/phase-1/summary.md (cross-phase reference)
+- specs/.current/AW-2865/phase-2/summary.md (cross-phase reference)
+- lib/src/ohttp.dart (audited subject, read-only verification)
+- lib/ohttp_dart.dart (re-export surface verification)
+
+---
+
+## Overall Verdict
+
+**APPROVED with two Important items.** Phase 3 meets all PRD success criteria. Coverage of the eight in-scope inspection targets is complete, each finding cites a concrete `ohttp.dart` line range with the relevant RFC 9458 section, severity is assigned to every non-positive finding, and the read-only constraint is honored (`git diff HEAD -- lib/ test/` is empty). All 11 tasks (3.1–3.11) are checked, all 11 findings (O-1–O-11) are recorded, and all 7 draft tasks (TASK-O1–TASK-O7) carry an actionable remediation direction with a single owner.
+
+The two Important items are a severity inconsistency on the plain-HKDF maintenance hazard between PRD Risks (HIGH) and research/tasks/plan (MAINTENANCE/IMPROVEMENT), and the introduction of a `MAINTENANCE` severity tier that is not present in the vision §2 severity model the PRD itself inherits. Neither blocks phase close; both warrant a one-line reconciliation before Iteration 7.
+
+No blocking findings.
+
+---
+
+## Acceptance criteria verification
+
+| PRD criterion | Status | Evidence |
+|---|---|---|
+| All RFC 9458 §4 subsections covered (no row in vision §4 scrutiny table for `ohttp.dart` skipped) | PASS | research.md §Findings covers §4.1 (O-1, O-2, O-3, O-4), §4.3 (O-5, O-6, O-10), §4.4 (O-7, O-8, O-9). Every scrutiny-table row maps to a verdict via the coverage table at plan.md lines 152–164. |
+| Empty-AAD and plain-HKDF findings fully cited | PASS | O-6 cites `ohttp.dart:149` + RFC 9458 §4.3 / §4.6.1. O-7 cites `ohttp.dart:192-207` (with sub-line breakdown for `:193`, `:196-200`, `:203-207`) + RFC 9458 §4.4 and the RFC 5869 / RFC 9180 distinction. Both meet the acceptance criterion verbatim. |
+| `OhttpKeyConfig` parser gaps documented with line refs | PASS | O-2 (silent multi-suite drop) cites `ohttp.dart:60-71`; O-3 (RangeError reassessment) cites `ohttp.dart:33-71`. Both findings have exact line references. |
+| Severity assigned to every finding | PASS (with note) | All 11 findings carry a severity tag or an explicit `—` for positive verdicts. See Important item I-1 about the `MAINTENANCE` tier not present in vision §2. |
+| No code changes (`git diff HEAD -- lib/ test/` empty) | PASS | Verified empty. Untracked Phase 3 spec files only. |
+| Draft tasks independently actionable | PASS | TASK-O1..TASK-O7 each target a single primary file:line in `ohttp.dart` (or `test/ohttp_test.dart` for O7), cite one RFC section (or Go-interop / RFC distinction), and carry a concrete remediation direction. No draft task depends on another in-flight Phase 3 task to be completed first. |
+| Cross-layer references included for findings that compound Phase 1 / Phase 2 patterns | PASS | O-2 explicitly notes the silent-ignore pattern is a new Layer 3 instance (no Phase 2 counterpart). O-4 cross-refs Phase 1 F-3 and Phase 2 R-3. O-10 cross-refs Phase 1 F-2. O-11 cross-refs Phase 1 F-6/F-7 and Phase 2 R-6. Coverage of cross-phase obligation from PRD Success table row 7 is complete. |
+
+---
+
+## Line-reference spot-check against `lib/src/ohttp.dart`
+
+I re-verified the key line citations against the current `ohttp.dart` source (257 lines on disk; research and plan claim 258, which is a +1 trailing-newline counting convention — see Nice-to-have N-1).
+
+| Reference | Verified content | Status |
+|---|---|---|
+| `ohttp.dart:40` — `keyId = data[offset++]` | Confirmed at line 40. | PASS |
+| `ohttp.dart:41` — kemId BE assembly | Confirmed at line 41 (`(data[offset] << 8) \| data[offset + 1]`). | PASS |
+| `ohttp.dart:51` — `FormatException('Unsupported KEM:...')` in `parse` | Confirmed at line 51. | PASS |
+| `ohttp.dart:57` — `publicKey = Uint8List.fromList(data.sublist(...))` | Confirmed at line 57. | PASS |
+| `ohttp.dart:60` — symLen BE read | Confirmed at line 60. | PASS |
+| `ohttp.dart:63-65` — guard `symLen < 4 \|\| data.length < offset + symLen` + `FormatException` | Confirmed at lines 63-65. | PASS |
+| `ohttp.dart:68`, `:70` — kdfId / aeadId BE read | Confirmed at lines 68 and 70. | PASS |
+| `ohttp.dart:82-85` — `validate()` `UnsupportedError` for KEM | Confirmed at lines 82-85. | PASS |
+| `ohttp.dart:104-120` — `OhttpEncapsulateResult` data class with 3 `final Uint8List` fields | Confirmed at lines 105-120 (one-line shift, see N-1). | PASS (line range matches the class body inclusively) |
+| `ohttp.dart:131-167` — `ohttpEncapsulate` async function | Confirmed at lines 131-167. | PASS |
+| `ohttp.dart:149` — `ctx.seal(Uint8List(0), binaryRequest)` empty AAD | Confirmed at line 149. | PASS |
+| `ohttp.dart:160` — `[...header, ...ctx.enc, ...ct]` assembly | Confirmed at line 160. | PASS |
+| `ohttp.dart:174-226` — `ohttpDecapsulate` | Confirmed at lines 174-226. | PASS |
+| `ohttp.dart:179-183` — short-response guard `encResponse.length <= _responseNonceLen` | Confirmed at lines 179-183 (research cites `:180-182`; the throw spans 180–182 with the `if` at 179). | PASS |
+| `ohttp.dart:186-187` — responseNonce / ciphertext split | Confirmed at lines 186-187. | PASS |
+| `ohttp.dart:190` — `salt = [...enc, ...responseNonce]` | Confirmed at line 190. | PASS |
+| `ohttp.dart:193` — `HpkeSender.hkdfExtract(salt, exportedSecret)` | Confirmed at line 193. | PASS |
+| `ohttp.dart:196-200` — `HpkeSender.hkdfExpand(prk, "key", _nk)` | Confirmed at lines 196-200. | PASS |
+| `ohttp.dart:203-207` — `HpkeSender.hkdfExpand(prk, "nonce", _nn)` | Confirmed at lines 203-207. | PASS |
+| `ohttp.dart:211-213` — tagLen guard `FormatException('Ciphertext too short for AES-GCM tag')` | Confirmed at lines 211-213 (research cites `:212-213`; the throw spans 212-213 with the guard `if` at 211). | PASS |
+| `ohttp.dart:217-223` — AES-128-GCM decrypt block (target for TASK-O5 wrap) | Confirmed at lines 217-223. TASK-O5 line range `217-225` extends two lines past the closing parenthesis to cover the `return` statement at 225 — acceptable widening for the try/catch scope. | PASS |
+| `ohttp.dart:219` — `aesGcm.decrypt(...)` throw site for `SecretBoxAuthenticationError` | Confirmed at line 219. | PASS |
+| `ohttp.dart:232-245` — `_buildHpkeInfo` | Confirmed at lines 232-245. | PASS |
+| `ohttp.dart:249-257` — `_buildRequestHeader` | Confirmed at lines 249-257. | PASS |
+| `lib/ohttp_dart.dart:10` — `export 'src/hpke.dart';` (re-export surface for O-7 maintenance hazard) | Confirmed at line 10. | PASS |
+
+All findings' line ranges resolve to the claimed code. No drift between research and source.
+
+---
+
+## Cross-phase consistency check
+
+The Phase 3 deliverable cites four cross-phase references; I verified each against the Phase 1 and Phase 2 summaries.
+
+| Phase 3 finding | Cited prior-phase finding | Verified | Notes |
+|---|---|---|---|
+| O-4 (FormatException vs UnsupportedError) | Phase 1 F-3 (HPKE exception-type inconsistency); Phase 2 R-3 (BHTTP body-sublist RangeError) | PASS for F-3 (HPKE has the same anti-pattern). Note: Phase 2 R-3 is specifically about `RangeError`-vs-`FormatException`, not `FormatException`-vs-`UnsupportedError`. The two patterns share a common root cause (no single normalized exception hierarchy) but are not strictly the same anti-pattern. The cross-reference is defensible at the meta-pattern level and the QA agent already accepts it; no change required. | See Nice-to-have N-2. |
+| O-10 (zeroization absence) | Phase 1 F-2 (`HpkeSenderContext` field zeroization absence) | PASS | The cross-reference is exact: both findings describe missing best-effort zero-fill on `Uint8List` backing arrays, both classified HIGH, both note the Dart VM no-guarantee caveat. |
+| O-11 (test gap) | Phase 1 F-6/F-7 (HPKE test-vector gap and interop gap); Phase 2 R-6 (BHTTP negative-test gap) | PASS | The recurring test-gap pattern is correctly identified as a multi-layer obligation. TASK-O7 enumerates four specific sub-scenarios so the gap is independently scopable. |
+| O-2 (silent multi-suite drop) | Cross-phase note: "no direct Phase 2 finding covers this; new gap at Layer 3" | PASS | The research explicitly disclaims a Phase 2 counterpart, which matches Phase 2 R-1..R-7 (none address suite-negotiation gaps in `bhttp.dart`). |
+
+The `testKeyPair` injection hook from Phase 1 F-1 is correctly handled as deferred (research §New Technical Questions #4 and plan §Risks P3-PLAN-R5) rather than re-classified as a Phase 3 finding — appropriate because the hook surfaces at the public API of `ohttpEncapsulate` (`ohttp.dart:134`) but the remediation lives at the Phase 1 layer.
+
+---
+
+## Severity-distribution sanity check
+
+PRD-anchored severity counts:
+
+| Severity | Count | Findings | Matches PRD Resolved Questions? |
+|---|---|---|---|
+| BLOCKER | 0 | — | YES (PRD explicitly states no BLOCKER expected at OHTTP layer; plan §Severity policy confirms). |
+| HIGH | 4 | O-2, O-9, O-10, O-11 | YES — matches the four risks elevated to HIGH in PRD §Risks. |
+| IMPROVEMENT | 2 | O-4, O-6 | YES — matches PRD Resolved Question #2 (empty-AAD inline comment) and Resolved Question (implicit, O-4 inconsistent exception). |
+| MAINTENANCE | 1 | O-7 | See Important item I-1: tier is plan-introduced, not PRD-anchored. |
+| Positive (—) | 4 | O-1, O-3, O-5, O-8 | YES |
+| **Total** | **11** | | |
+
+---
+
+## Findings
+
+### Blocking
+
+None.
+
+### Important
+
+**I-1 — Severity inconsistency on the plain-HKDF maintenance hazard between PRD Risks (HIGH) and research/tasks/plan (MAINTENANCE/IMPROVEMENT)**
+
+- PRD `phase-3/prd.md:122` (Risks table) classifies the underlying risk — "Any future refactoring that unifies response-decap HKDF with the labeled variants in `hpke.dart` would silently produce different key material and break decryption with no compile-time signal" — as **HIGH**, with mitigation "recorded as a maintenance hazard task with a code-comment remediation."
+- research.md `phase-3/research.md:568` (Limitations & Risks table) classifies O-7 as **MAINTENANCE**.
+- tasks.md `phase-3/tasks.md:110` and research.md `phase-3/research.md:625` classify TASK-O4 as **MAINTENANCE (IMPROVEMENT)**.
+- plan.md `phase-3/plan.md:92` defines `MAINTENANCE` as a sub-category of `IMPROVEMENT`, but the PRD-anchored severity in the Risks table is HIGH.
+
+This is the exact divergence that PRD §Resolved Questions did not pre-resolve (unlike the empty-AAD and zeroization severities). Per plan §P3-PLAN-R1 mitigation ("any divergence must be reconciled in `research.md` before close"), the resolution should be picked and applied consistently.
+
+Recommendation: pick one direction and apply to all four documents. The MAINTENANCE (sub-IMPROVEMENT) treatment is the more defensible position because the underlying code is currently COMPLIANT — the risk is purely about a future refactor introducing a regression, and the remediation is a code comment, not a behavior change. If MAINTENANCE is kept, edit PRD line 122 to read "IMPROVEMENT (maintenance hazard)" rather than HIGH.
+
+Severity: Important. Does not block phase close; should be reconciled before Iteration 7 to avoid carrying the inconsistency into the Jira ticket.
+
+**I-2 — `MAINTENANCE` severity tier is introduced in plan.md but absent from vision §2 and PRD inherited severity model**
+
+- PRD `phase-3/prd.md:12-15` declares the inherited severity model: "BLOCKER / HIGH / IMPROVEMENT" only.
+- plan.md `phase-3/plan.md:89-92` introduces `MAINTENANCE` as a fourth tier, described as "a sub-category of IMPROVEMENT used for 'do not silently break this in future refactors.'"
+- research.md and tasks.md adopt the new tier without flagging it as a vision deviation.
+
+This is a controlled extension (the plan documents it explicitly), but it would benefit from a single sentence in the PRD's severity model or Resolved Questions to make the four-tier scheme PRD-anchored rather than plan-anchored. Without that, a future reader of the PRD alone would not understand why research carries `MAINTENANCE` rows.
+
+Recommendation: either fold MAINTENANCE rows into IMPROVEMENT with a parenthetical "(maintenance hazard)" qualifier (preserves the three-tier vision model), or add a one-line note in PRD §Resolved Questions explicitly admitting the fourth tier. Either is fine; the current state of "plan-defines, PRD-omits" is what creates the inconsistency.
+
+Severity: Important. Does not block phase close.
+
+### Nice-to-have
+
+**N-1 — `ohttp.dart` line count is reported as 258 in research.md and plan.md, actual file is 257 lines**
+
+research.md line 5 and 63, plan.md line 12 cite "258 lines." `wc -l` on the working tree reports 257. This is a +1 trailing-newline convention discrepancy. No finding line ranges are affected (all individual citations were verified above). Consider standardizing on `wc -l` output in future research files.
+
+**N-2 — O-4 cross-reference to Phase 2 R-3 conflates two distinct anti-patterns**
+
+O-4 is about `FormatException` vs `UnsupportedError` (two normal exception types for the same condition). Phase 2 R-3 is about `RangeError` vs `FormatException` (an unchecked vs checked exception leak). These share a common root cause (no normalized exception hierarchy) but are not the same anti-pattern. The QA agent already accepts this cross-reference; consider rephrasing as "same exception-hierarchy-normalization gap as Phase 1 F-3 and (related) Phase 2 R-3" for precision.
+
+**N-3 — Plan §Coverage map shows O-3 producing no draft task, but the O-3 narrative mentions an "IMPROVEMENT" sub-finding about error-message ambiguity ("Invalid symmetric algorithms section" combines two distinct failure modes)**
+
+research.md lines 269-272 note this as an IMPROVEMENT but it is not lifted into a TASK-O* entry; plan.md line 156 folds it into TASK-O7 (test-message scope) but TASK-O7 is about test coverage, not about splitting the parser error message. This is a small loose end. Options: add a TASK-O8 "Split error message in `OhttpKeyConfig.parse` for symLen-invalid vs short-buffer cases" or explicitly drop the sub-improvement. Currently it is recorded but neither tasked nor declined.
+
+**N-4 — TASK-O5 line range widens from `ohttp.dart:219` (throw site) to `217-225` (function body) without explanation**
+
+The widening is defensible because a try/catch wrap needs to span the decrypt call setup and the return; however, a one-line note in the TASK-O5 description ("range covers the decrypt block and the return so the try/catch encompasses both the throw site and the consumer of `plaintext`") would prevent reviewer churn during Iteration 7.
+
+**N-5 — research.md §New Technical Questions #4 and plan.md §P3-PLAN-R5 about `ohttpEncapsulate`'s `testKeyPair` parameter (`ohttp.dart:134`) deferred to Phase 5**
+
+Defensible. Documenting this for completeness: a future Phase 5 reviewer should confirm that `ohttp_client.dart` never passes a non-null `testKeyPair` in production. If Phase 5 does not pick this up, the deferred check could fall through the cracks at Iteration 7. Suggest adding a small "Phase 5 must verify" note in `specs/.current/AW-2865/tasklist.md` Phase 5 row.
+
+---
+
+## Read-only constraint verification
+
+`git diff HEAD -- lib/ test/` produces no output. The constraint is honored. Status output shows only the untracked `specs/.current/AW-2865/phase-3/` directory and the existing review.md being extended. No source under `lib/`, `test/`, `pubspec.yaml`, or `example/` is modified.
+
+---
+
+## Conclusion
+
+- Audit deliverable is **complete and consistent** with PRD acceptance criteria. All 11 tasks (3.1–3.11) are checked; all 8 in-scope inspection targets (KeyConfig wire layout, multi-suite drop, RangeError reassessment, exception inconsistency, HPKE info string, empty AAD, plain HKDF, response empty AAD, SecretBoxAuthenticationError, zeroization) have verdicts and line citations; all 7 draft tasks (TASK-O1..TASK-O7) are independently actionable; no source under `lib/` or `test/` was modified.
+- **Four HIGH-severity items** (O-2 silent multi-suite drop, O-9 SecretBoxAuthenticationError leak, O-10 zeroization absence, O-11 test-coverage gaps) and **two IMPROVEMENT items** (O-4 exception inconsistency, O-6 empty-AAD inline-comment expansion) recommended for the follow-up backlog. **One MAINTENANCE item** (O-7 plain-HKDF refactor guard) with code-comment-only remediation. No BLOCKER identified at the OHTTP layer.
+- **One severity-discipline action item before Iteration 7** (I-1): reconcile the PRD Risks "HIGH" classification of the plain-HKDF maintenance hazard with the research/tasks/plan `MAINTENANCE` classification. Pick one and apply consistently.
+- **One severity-model action item before Iteration 7** (I-2): either fold `MAINTENANCE` rows into `IMPROVEMENT` with a parenthetical qualifier (preserves vision §2 three-tier model) or add a one-line PRD note admitting the fourth tier (preserves plan-introduced semantics).
+- Phase 3 is ready to close pending production of `phase-3/qa.md` per plan §Acceptance / Close Criteria item 4, and (recommended) resolution of the two Important action items above before Iteration 7 compiles the per-task Markdown files.
+
+---
+
+## Files referenced
+
+- specs/.current/AW-2865/phase-3/prd.md
+- specs/.current/AW-2865/phase-3/plan.md
+- specs/.current/AW-2865/phase-3/research.md
+- specs/.current/AW-2865/phase-3/tasks.md
+- specs/.current/AW-2865/vision.md
+- specs/.current/AW-2865/phase-1/summary.md
+- specs/.current/AW-2865/phase-2/summary.md
+- lib/src/ohttp.dart
+- lib/ohttp_dart.dart
