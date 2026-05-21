@@ -899,3 +899,125 @@ Both are quality-of-record issues, not correctness issues. Phase 5 is otherwise 
 - test/hpke_test.dart
 - test/bhttp_test.dart
 - test/ohttp_test.dart
+
+---
+
+# Phase 6 Review — AW-2865 Privacy Risk Review, Observability Gaps, and Documentation
+
+**Subject:** Phase 6 deliverables for ticket AW-2865 (privacy risk review, observability gaps audit, documentation review).
+**Reviewer:** Code review agent (read-only audit verification).
+**Reviewed artifacts:**
+- `specs/.current/AW-2865/phase-6/prd.md`
+- `specs/.current/AW-2865/phase-6/plan.md`
+- `specs/.current/AW-2865/phase-6/research.md`
+- `specs/.current/AW-2865/phase-6/tasks.md`
+- `specs/.current/AW-2865/vision.md` (reference)
+- `lib/src/ohttp_client.dart`, `lib/src/ohttp.dart`, `lib/src/hpke.dart`, `example/ohttp_dart_example.dart`, `pubspec.yaml` (read-only verification of cited evidence)
+
+---
+
+## Overall Verdict
+
+**APPROVED.** Phase 6 satisfies every PRD success criterion and every Phase Exit Condition in `plan.md §9`. All 11 tasks (6.1–6.11) are checked off with concrete evidence in the confirmation summary; all 13 draft entries (P6-1 through P6-13) follow the schema in `plan.md §3`; the observability gaps catalog (OG-1..OG-5) and logging constraints matrix (LC-1..LC-6) are complete; the four Phase 7 carry-forward questions are recorded; and `git diff HEAD -- lib/ test/ example/ pubspec.yaml` is empty (verified zero lines).
+
+No blocking findings. A small number of nice-to-have improvements are listed below.
+
+---
+
+## Acceptance criteria verification
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| All 11 tasks 6.1–6.11 marked `- [x]` | PASS | `phase-6/tasks.md:58–78` — every task checkbox is `[x]`. |
+| ≥1 BLOCKER or HIGH finding tied to `sendDirect()` bypass | PASS — exceeds | P6-1 (BLOCKER, lines 164–168), P6-8 (HIGH observability companion, lines 203–206), P6-13 (IMPROVEMENT API-visibility companion, lines 228–231). |
+| ≥1 HIGH finding tied to key-material zeroization absence | PASS — split per PRD Q2 | P6-3 (HIGH, `hpke.dart` scope, lines 176–180) and P6-4 (HIGH, `ohttp.dart` scope, lines 182–186) — two separate tasks as required by Resolved Question Q2. |
+| No code change in `lib/`, `test/`, or `example/` | PASS | `git diff HEAD -- lib/ test/ example/ pubspec.yaml` returns zero lines. Only `specs/.current/.active_ticket` and `specs/.current/AW-2865/phase-6/tasks.md` are modified. |
+| 13 draft entries P6-1..P6-13 conform to schema (§3) | PASS | All 13 entries carry Task ID, Severity, File, Lines, Concern category, Description; Cross-refs present where prior-phase compounding exists (P6-1, P6-2, P6-3, P6-4). |
+| OG-1..OG-5 observability catalog complete with file + severity | PASS | `phase-6/tasks.md:233–241` — table with Gap ID, missing event, file, lines, severity. Severities match `vision.md §7` (4× HIGH + 1× IMPROVEMENT). |
+| LC-1..LC-6 logging constraints matrix complete | PASS | `phase-6/tasks.md:243–254` — six rows, each citing the affected identifier set. |
+| Phase 7 carry-forward questions present (4 items) | PASS | `phase-6/tasks.md:256–263` — exactly the four questions from `plan.md §8`. |
+| `pubspec.yaml` review records the tight caret and absence of FFI | PASS | P6-12 (IMPROVEMENT, lines 223–226) confirms `cryptography: ^2.9.0`, `http: ^1.6.0`, no FFI/native deps. |
+| Severity matrix in `plan.md §2.3` matches recorded P6-N severities | PASS | Spot-checked P6-1 BLOCKER, P6-2..P6-8 HIGH, P6-9..P6-13 IMPROVEMENT — matches §2.3. |
+| Repo-relative paths throughout | PASS | No absolute `/Users/...`, `/home/...`, or `C:\...` paths appear in `phase-6/tasks.md`. |
+
+---
+
+## Line-reference spot-check against source
+
+Re-verified every cited line range against the current source files. All resolve correctly:
+
+| Entry | Cited file:lines | Verified content | Status |
+|---|---|---|---|
+| P6-1 | `ohttp_client.dart:52, 148–171` | Line 52 is `String get effectiveDirectBaseUrl => directBaseUrl ?? gatewayBaseUrl;`. Lines 148–171 are the `sendDirect()` body with no doc comment beyond line 147 ("Send a direct HTTP request (for comparison).") and no `assert`/`@Deprecated`/warning. | PASS |
+| P6-2 | `ohttp_client.dart:43–51` | Lines 43–51 are the `OhttpGatewayConfig` const constructor — accepts `gatewayBaseUrl` as raw `String` with no scheme check. | PASS |
+| P6-3 | `hpke.dart:258–270` | Lines 258–270 are the `HpkeSenderContext` class header and the four `final Uint8List` field declarations (`enc`, `key`, `baseNonce`, `exporterSecret`) plus the private constructor. No zeroization method exists in the class. | PASS |
+| P6-4 | `ohttp.dart:105–120, 196–207` | Lines 105–120 are `OhttpEncapsulateResult` class with `final Uint8List encRequest/enc/exportedSecret`. Lines 196–207 are the local `aeadKey`/`aeadNonce` HKDF-Expand derivations inside `ohttpDecapsulate`. | PASS |
+| P6-5 | `ohttp_client.dart:81–89` | KeyConfig GET, generic `Exception` on non-200, `OhttpKeyConfig.parse(configResponse.bodyBytes)`. No structured event. | PASS |
+| P6-6 | `ohttp_client.dart:115–122` | Gateway POST, generic `Exception('Gateway error: HTTP …')` on non-200. No structured event. | PASS |
+| P6-7 | `ohttp.dart:218–224` | `aesGcm.decrypt(secretBox, secretKey: …, aad: [])` — `SecretBoxAuthenticationError` from `package:cryptography` propagates unwrapped. | PASS |
+| P6-8 | `ohttp_client.dart:148–171` | `sendDirect()` signature lacks `onLog`; body has no observability emission. | PASS |
+| P6-9 | `ohttp_client.dart:77, 113` | Line 77: `'Fetching OHTTP KeyConfig from ${gateway.gatewayBaseUrl}${gateway.configPath}...'`. Line 113: `'Sending to OHTTP gateway ${gateway.gatewayBaseUrl}${gateway.requestPath}...'`. Both interpolate `gatewayBaseUrl` into `onLog`. | PASS |
+| P6-10 | `ohttp.dart:131–167` | `ohttpEncapsulate` body. No timing instrumentation. | PASS |
+| P6-11 | `example/ohttp_dart_example.dart:1–39` | File is 38 lines; cited 1–39 is one over by EOF. Placeholder `'https://your-gateway.example.com'`, `targetAuthority` equals gateway host, no `sendDirect()` reference, no prerequisites block. Verdict accurate; range is harmless overshoot. | PASS (cosmetic over-cite — see Nice-to-have) |
+| P6-12 | `pubspec.yaml:12–18` | Lines 12–18 cover both the `dependencies:` and `dev_dependencies:` blocks (`cryptography: ^2.9.0` at line 13, `http: ^1.6.0` at line 14, no FFI/native deps). | PASS |
+| P6-13 | `ohttp_client.dart:52` | Public getter `effectiveDirectBaseUrl` confirmed. | PASS |
+
+Empty-logging grep claim re-verified: `grep -RnE 'print\(|debugPrint|dart:developer|Logger|log\(' lib/` returns zero matches.
+
+---
+
+## Internal consistency check
+
+- **Severity classifications align with `plan.md §2.3`.** Each of P6-1 (BLOCKER), P6-2..P6-8 (HIGH), and P6-9..P6-13 (IMPROVEMENT) matches the matrix verbatim.
+- **Cross-refs are accurate and minimal.** P6-1 cites Phase 4 C-4; P6-2 cites Phase 4 C-1; P6-3 cites Phase 1 F-2; P6-4 cites Phase 3 TASK-O6. No prior-phase ID is misquoted, and no verbatim prior-phase description is duplicated (per `plan.md §4.2` and Resolved Question Q6).
+- **Resolved Question Q1 honored.** P6-1 enters Phase 7 directly as BLOCKER with rationale citing the source-confirmed silent fallback (`ohttp_client.dart:52`) — the escalation is justified inside the entry, not deferred with a "candidate" label, matching `plan.md §3` severity discipline.
+- **Resolved Question Q2 honored.** P6-3 and P6-4 are kept as two separate HIGH tasks with disjoint file scopes (`hpke.dart` vs `ohttp.dart`); no mechanical merge.
+- **Resolved Question Q3 honored.** P6-11 (example file) is IMPROVEMENT only; no hardcoded credentials or private URLs were found (placeholders are obviously such).
+- **Resolved Question Q4 honored.** P6-12 records the tight caret outcome as IMPROVEMENT (confirmed-clean), not HIGH — appropriate per the resolution.
+- **Resolved Question Q5 honored.** P6-10 (encap timing, OG-5) is IMPROVEMENT per `vision.md §7` — no upgrade attempted.
+- **Observability companion split is principled.** P6-1 (privacy framing of `sendDirect()` bypass) and P6-8 (observability framing of OHTTP-bypass signal) are kept as separate tasks with distinct fix scopes, matching the §6 risk-mitigation note about not conflating frames.
+- **Phase 7 carry-forward questions are the same four items as `plan.md §8.1–§8.4`,** with consistent wording. Good traceability.
+
+No internal inconsistencies detected.
+
+---
+
+## Findings
+
+### Blocking
+None.
+
+### Important
+None.
+
+### Nice-to-have
+
+1. **P6-11 line range overshoots EOF by one.** `example/ohttp_dart_example.dart` is 38 lines (per `wc -l`); the entry cites `1–39`. Cosmetic only — Phase 7 should normalize to `1–38` when materializing tasks.
+
+2. **P6-3 line range is wider than the actual field declarations.** The cited range `258–270` covers the class block end and the private constructor; the fields `key`, `baseNonge`, `exporterSecret` are declared at lines 260–262, with `enc` at 259. Phase 7 can tighten to `259–262` when materializing the per-task file. Not a defect — the wider range is defensible because the fix surface is the whole class.
+
+3. **P6-9 could note the LC-6 connection explicitly in the entry body.** The description references LC-6 in spirit ("Compliant with LC-6 only if…") but doesn't print the LC-6 identifier. A trivial future polish.
+
+4. **`pubspec.yaml` `http: ^1.6.0` is documented in P6-12 but not separately flagged for transitive-FFI confirmation.** `package:http` on some platforms pulls in `package:web`/`dart:io` paths; per `plan.md §1` "transitive dependency audit" is explicitly out of scope, so this is correctly excluded — but Phase 7 may want to add it as a follow-up if the wallet build context requires a hard no-FFI guarantee in dependents.
+
+5. **`onLog` is invoked with `gatewayBaseUrl` interpolation but P6-9 doesn't enumerate every call site.** Lines 90, 96, 107, 109, 123, 128, 142 also emit `onLog` messages; only the two carrying `gatewayBaseUrl` (77 and 113) violate LC-6. The cited two lines are correct; the other call sites are non-violating and rightly omitted, but a one-line clarification would prevent Phase 7 re-checking.
+
+These are documentation polish only — none affect the audit outcome or downstream Phase 7 actionability.
+
+---
+
+## Conclusion
+
+Phase 6 is **APPROVED** with no blocking or important findings. The deliverable is internally consistent, fully grounded in source evidence, conforms to the Phase 6 plan and PRD without drift, and provides a clean, schema-conformant input to Phase 7 cross-phase triage. The investigation goal (identify risks, produce actionable task drafts) is met for the privacy, observability, and documentation streams.
+
+**Files referenced:**
+- specs/.current/AW-2865/phase-6/prd.md
+- specs/.current/AW-2865/phase-6/plan.md
+- specs/.current/AW-2865/phase-6/research.md
+- specs/.current/AW-2865/phase-6/tasks.md
+- specs/.current/AW-2865/vision.md
+- lib/src/ohttp_client.dart
+- lib/src/ohttp.dart
+- lib/src/hpke.dart
+- example/ohttp_dart_example.dart
+- pubspec.yaml

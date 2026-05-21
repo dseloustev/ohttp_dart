@@ -13,12 +13,12 @@ Based on [vision.md](./vision.md).
 | 3 | Read OHTTP layer and assess encap/decap correctness | ✅ Done | 11/11 |
 | 4 | Read client layer and assess network reliability and KeyConfig lifecycle | ✅ Done | 12/12 |
 | 5 | Review test suite coverage gaps | ✅ Done | 11/11 |
-| 6 | Review privacy risks, observability gaps, and documentation | ⬜ Pending |  |
+| 6 | Review privacy risks, observability gaps, and documentation | ✅ Done | 13/13 (P6-1..P6-13) |
 | 7 | Compile findings into per-task Markdown files | ⬜ Pending |  |
 
 **Legend:** ⬜ Pending | 🔄 In Progress | ✅ Done | ❌ Blocked
 
-**Current Phase:** 6
+**Current Phase:** 7
 
 ---
 
@@ -133,27 +133,27 @@ Based on [vision.md](./vision.md).
 **Goal:** Assess the package against privacy requirements for a non-custodial crypto wallet, review the example file for documented limitations, and catalog observability gaps.
 
 ### `lib/src/ohttp_client.dart`
-- [ ] Confirm that `sendDirect()` is not documented with a privacy-impact warning anywhere in the source.
-- [ ] Confirm no logging of inner request URL/method/headers/body or response body/headers anywhere in `lib/`.
+- [x] Confirm that `sendDirect()` is not documented with a privacy-impact warning anywhere in the source.
+- [x] Confirm no logging of inner request URL/method/headers/body or response body/headers anywhere in `lib/`.
 
 ### `lib/src/ohttp.dart`
-- [ ] Confirm no logging of `enc`, `exportedSecret`, or HKDF-derived key material.
+- [x] Confirm no logging of `enc`, `exportedSecret`, or HKDF-derived key material.
 
 ### `lib/src/hpke.dart`
-- [ ] Confirm no logging of ephemeral key material.
+- [x] Confirm no logging of ephemeral key material.
 
 ### `example/ohttp_dart_example.dart`
-- [ ] Read the file.
-- [ ] Note whether the example documents: (a) that a real gateway URL is required, (b) that `sendDirect()` bypasses OHTTP, (c) any known limitations or prerequisites.
+- [x] Read the file.
+- [x] Note whether the example documents: (a) that a real gateway URL is required, (b) that `sendDirect()` bypasses OHTTP, (c) any known limitations or prerequisites.
 
 ### `pubspec.yaml`
-- [ ] Read the file.
-- [ ] Note `package:cryptography` version pinning — confirm no wildcard `any` constraint that could silently pull in a breaking update.
-- [ ] Note absence of any dependency that introduces native code or FFI.
+- [x] Read the file.
+- [x] Note `package:cryptography` version pinning — confirm no wildcard `any` constraint that could silently pull in a breaking update.
+- [x] Note absence of any dependency that introduces native code or FFI.
 
 ### Observability gaps (cross-cutting)
-- [ ] Catalog all five observability gaps from `vision.md §7` (KeyConfig fetch, gateway POST status, AEAD failure, `sendDirect()` invocation, encapsulation timing) and assign severity per vision.md.
-- [ ] Note the six logging constraints from `vision.md §7` that any future logging must respect.
+- [x] Catalog all five observability gaps from `vision.md §7` (KeyConfig fetch, gateway POST status, AEAD failure, `sendDirect()` invocation, encapsulation timing) and assign severity per vision.md.
+- [x] Note the six logging constraints from `vision.md §7` that any future logging must respect.
 
 **Test:** No code is changed. Verification is: the privacy findings include at least one BLOCKER or HIGH item tied to the `sendDirect()` bypass and at least one tied to absence of key-material zeroization.
 
