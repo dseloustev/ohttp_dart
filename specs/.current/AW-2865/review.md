@@ -713,3 +713,189 @@ Both are flagged as design questions for TASK-C4 and TASK-C5 respectively. The d
 - lib/src/ohttp.dart (cross-layer; TASK-O5 site at line 219)
 - lib/src/bhttp.dart (cross-layer; R-2 site at lines 165-182)
 - lib/ohttp_dart.dart
+
+
+---
+
+# Phase 5 Review — Test Suite Coverage Gap Audit
+
+**Date:** 2026-05-21
+**Mode:** ticket (read-only audit phase)
+**Scope:** `test/hpke_test.dart` (296 lines), `test/bhttp_test.dart` (231 lines), `test/ohttp_test.dart` (164 lines)
+**Artifacts reviewed:**
+- specs/.current/AW-2865/phase-5/prd.md (Status: PRD_READY)
+- specs/.current/AW-2865/phase-5/plan.md (Status: PLAN_APPROVED)
+- specs/.current/AW-2865/phase-5/research.md (Status: RESEARCH_COMPLETE)
+- specs/.current/AW-2865/phase-5/tasks.md (11 of 11 tasks checked)
+- test/hpke_test.dart, test/bhttp_test.dart, test/ohttp_test.dart
+
+## Verdict
+
+**Approve with minor consistency fixes (no blockers).**
+
+Phase 5 delivers a defensible, traceable audit of the test suite. All eleven checklist items in `phase-5/tasks.md` are checked and substantiated by line-grounded findings; the cross-phase confirmation table covers the 30 gaps the resolved question Q4 commits to; PRD success criteria are met. The artifacts are read-only — `git status` confirms no file under `lib/`, `test/`, `pubspec.yaml`, or `example/` was modified (the only changes are inside `specs/.current/AW-2865/phase-5/` and an unrelated tweak in `specs/.current/AW-2865/tasklist.md` recording phase completion).
+
+The findings below are quality-of-record issues — none invalidate the audit conclusions.
+
+## Acceptance criteria verification (against `phase-5/prd.md` Success / Metrics)
+
+| Criterion | Status | Evidence |
+|---|---|---|
+| Every test file read in full | PASS | `research.md` cites actual line counts: hpke_test.dart 296 (line 20), bhttp_test.dart 231 (line 59), ohttp_test.dart 164 (line 103). Matches `wc -l` of the actual files. |
+| Every existing test group named | PASS | `research.md` enumerates all four hpke groups (line 24–29), six bhttp groups (line 63–70), four ohttp groups (line 107–112) with test counts. |
+| Every gap tied to a line range | PASS | All 13 TASK-T entries in `research.md` carry an explicit "Coverage stops at" line number; cross-phase table cites line numbers for each confirmation. |
+| Every gap from Phases 1–4 confirmed or refuted | MOSTLY PASS — see Important #1 | Cross-phase table has exactly 30 rows; all marked `Still absent` except `O-4/TASK-O2` (PARTIAL — correctly explained). C-11, named explicitly in PRD Scenario D bullet 4, is not in the table (referenced only indirectly via TASK-T9 cross-phase note). |
+| All 8 investigation vectors addressed for test suite | PASS | `plan.md` lines 87–96 maps every vector to one or more TASK-T entries; `tasks.md` lines 105–114 carries the equivalent matrix. |
+| No code changes | PASS | `git status` shows only `specs/.current/AW-2865/tasklist.md` and `specs/.current/AW-2865/phase-5/` modified/added. `lib/`, `test/`, `pubspec.yaml`, `example/` are untouched. |
+| All draft task entries independently actionable | PASS | Each TASK-T entry carries File, Missing scenario, Coverage stops at, Proposed group name, Severity, Cross-phase reference. |
+| Severity assigned to every gap | PASS | All 13 TASK-T entries carry exactly one of HIGH / IMPROVEMENT. No BLOCKER assigned (consistent with `plan.md` Definition of Done item 7). No "TBD". |
+
+## Line-reference spot-check against test files
+
+Verified citations by reading the actual files:
+
+| Claim | Citation | Verified |
+|---|---|---|
+| `testKeyPair` injection in seal-seq=0 test | `hpke_test.dart:104–119` | YES — `test('seal produces correct ciphertext for seq=0')` at line 104; `testKeyPair` block at 105–108; assertion at 117–118. |
+| seq=1 nonce-increment seal test | `hpke_test.dart:177–200` | YES — last seal call in file at line 195 with assertion at 196–199. The "after line 200" anchor for T-H1 is correct. |
+| export with empty context | `hpke_test.dart:202–220` | YES — assertion through 216–219; group ends 220. (`tasks.md` says "202–219", off by one — minor.) |
+| export with "TestContext" | `hpke_test.dart:222–241` | YES. |
+| `HKDF utilities` last expand-32 test | `hpke_test.dart:283–294`, group closes at 295 | YES — `research.md:300` cites "line 295 (last hkdfExpand test uses length 32)" correctly. |
+| Varint roundtrip set | `bhttp_test.dart:61–68` | YES — `[0, 1, 63, 64, 100, 255, 16383, 16384, 100000]` at line 62. |
+| 4-byte varint max (1073741823) | `bhttp_test.dart:27–28` | YES — `encodeVarint(1073741823)` at line 27, assertion at 28. |
+| `ohttpDecapsulate` "rejects too-short response" | `ohttp_test.dart:150–155` | YES — `Uint8List(16)` encResponse at line 152. |
+| `ohttpDecapsulate` "only nonce, no valid ciphertext" | `ohttp_test.dart:157–162` | YES — `Uint8List(17)` encResponse at line 159. |
+| `ohttpEncapsulate` 5-byte binaryRequest | `ohttp_test.dart:125` | YES — `Uint8List.fromList([1, 2, 3, 4, 5])` at exactly line 125. |
+
+Line citations are accurate to within ±1 line throughout the audit. No factual errors found.
+
+## Findings (priority taxonomy)
+
+### Blocking
+
+None. The audit is defensible and well-grounded.
+
+### Important
+
+**I-1 — `tasks.md` says `hpke_test.dart` is 297 lines; the file is 296 lines.**
+
+`phase-5/tasks.md:137` reads "### 5.1–5.3 `test/hpke_test.dart` (297 lines)". `wc -l test/hpke_test.dart` returns 296, and `plan.md:18,54` and `research.md:20` both correctly cite 296. The "297" in `tasks.md` is the only divergent line count in the phase. Cosmetic but visible.
+- Fix: change `tasks.md:137` to `(296 lines)`.
+
+**I-2 — `tasks.md` draft-task table and `research.md` draft-task entries use different IDs and counts.**
+
+`tasks.md` lines 231–249 lists 15 draft tasks tagged `T-H1, T-H2, T-H3, T-B1..T-B5, T-O1..T-O6, T-X1, T-X2`. `research.md` lines 274–393 lists 13 draft tasks tagged `TASK-T1..TASK-T13`. The mapping is implicit and incomplete:
+
+| tasks.md | research.md | Notes |
+|---|---|---|
+| T-H1 seq overflow | TASK-T1 | matches |
+| T-H2 export L=0 / L>255*Nh | TASK-T3 | matches (re-numbered) |
+| T-H3 zero pubkey | TASK-T2 | matches (re-numbered) |
+| T-B1 8-byte varint | TASK-T4 | matches |
+| T-B2 truncated body | TASK-T5 | matches (TASK-T5 is broader: also covers F2.5b, F2.5c, F2.6a) |
+| T-B3 unknown framing | TASK-T6 | matches |
+| T-B4 zero-length header / malformed header | — | **not promoted** to a TASK-T entry |
+| T-B5 serializeRequest size cap | — | **not promoted** to a TASK-T entry |
+| — | TASK-T7 statusCode out-of-range | not in `tasks.md` summary table |
+| T-O1 symLen>4 | TASK-T8 | matches |
+| T-O2 symLen past buffer end | — | **not promoted** to a TASK-T entry |
+| T-O3 AEAD auth failure | TASK-T9 | matches |
+| T-O4 round-trip | TASK-T10 | matches |
+| T-O5 parse vs validate inconsistency | — | **not promoted**; appears only in cross-phase row O-4/TASK-O2 (PARTIAL) |
+| T-O6 empty inner payload | — | **not promoted** to a TASK-T entry |
+| — | TASK-T11 OhttpClient error paths | not in `tasks.md` summary table |
+| T-X1 integration tests | TASK-T13 | matches |
+| T-X2 fuzz tests | TASK-T12 | matches |
+
+The two artifacts therefore disagree on the set of draft tasks. `plan.md` line 12 declares the canonical set as "TASK-T1..TASK-T13"; that is the artifact consumed by Iteration 7. The five `tasks.md` entries without a TASK-T counterpart (T-B4, T-B5, T-O2, T-O5, T-O6) are at risk of being dropped during compilation. Conversely, TASK-T7 (statusCode out-of-range, IMPROVEMENT) and TASK-T11 (OhttpClient error paths, HIGH) are absent from the `tasks.md` summary and may be missed by anyone using `tasks.md` as the entry point.
+- Fix: reconcile the two tables in one direction. Either (a) promote T-B4, T-B5, T-O2, T-O5, T-O6 into research.md as TASK-T14..TASK-T18 (preferred — they are valid gaps), or (b) explicitly note in `tasks.md` that the canonical task list is `research.md §"Draft Task Entries"` and the `tasks.md` table is a working scratchpad. Either way, Iteration 7 must consume one canonical list, not both.
+
+**I-3 — Cross-phase confirmation table is missing C-11 (Phase 4) row.**
+
+PRD `phase-5/prd.md:104` explicitly enumerates "Phase 4 (C-11): auth-failure path tested only indirectly — confirm" as a Scenario D obligation. The cross-phase table in `research.md` lines 142–173 contains rows for C-1 through C-10 only; C-11 and C-12 are absent. C-11 IS referenced in `research.md:357` as a cross-phase tag on TASK-T9, so the confirmation work was done — but the table is the contract artifact (per `plan.md:74–81`) and is therefore incomplete on its face. Resolved Q4 (line 264–265) claims the table covers "all 30 named gaps found across phases 1–4"; Phase 4 actually has 12 findings (C-1..C-12), so the count is also off if C-11/C-12 are in scope.
+- Fix: append two rows to the cross-phase table for C-11 (`Still absent` — confirmed via the same evidence as TASK-O7 item 2) and C-12 (likely `Still absent` — needs verification against `phase-4/research.md` C-12 wording).
+
+### Nice-to-have
+
+**N-1 — `tasks.md` line citations for missing-case anchors occasionally drift by one line versus the canonical research file.**
+
+Examples: `tasks.md:202–219` for "export with empty context" vs `research.md:43` which cites "202–220"; `tasks.md:222–241` matches `research.md:44`. Within ±1 line, well within audit tolerance, but for downstream tooling consumers a single canonical citation per scenario reduces ambiguity.
+- Fix: optional — pick one source (research.md) as canonical and have `tasks.md` reference it.
+
+**N-2 — `research.md` Resolved Question Q4 (line 264–265) wording "all 30 named gaps" predates the C-11/C-12 omission noted in I-3.**
+
+If I-3 is fixed by adding rows, this sentence should be updated to "all 32 named gaps" or "all named test-relevant gaps from Phases 1–4 (32 items)".
+- Fix: trivial wording update after I-3.
+
+**N-3 — TASK-T6 severity (IMPROVEMENT) vs `tasks.md` T-B3 severity (IMPROVEMENT) — consistent — but TASK-T5 severity (HIGH) absorbs F2.5c (IMPROVEMENT per Phase 2 tasks.md:122) without flagging the severity blend.**
+
+`research.md:321` lists TASK-T5 cross-phase as "Confirms R-6 (Phase 2), F2.5a, F2.5b, F2.5c, F2.6a, NG-6". F2.5c is IMPROVEMENT in Phase 2; the others are HIGH. Bundling F2.5c into a HIGH task is defensible (worst-case severity wins for the bundle) but the bundle's severity rationale could be more explicit in the entry.
+- Fix: optional — add a one-line note in TASK-T5 explaining that F2.5c is folded in despite being IMPROVEMENT at source, because the same test code can exercise all four boundary scenarios.
+
+**N-4 — TASK-T11 covers Phase 4 C-1..C-10 but does not enumerate which sub-scenarios touch C-2, C-3, C-9, C-10.**
+
+TASK-T11 (lines 369–375) names four scenarios: 503-on-KeyConfig, 400-on-gateway, `http://` scheme, `sendDirect()`. These cover C-1, C-5, C-6, C-7 cleanly. C-2 (path-traversal), C-3 (targetAuthority embedding), C-9 (no response-body size cap), and C-10 (header case) are listed as covered in the cross-phase reference but have no matching sub-scenario in the task. Either expand the task or note that those four are out of scope and need a separate task.
+- Fix: optional — split TASK-T11 into TASK-T11a (HTTP error paths) and TASK-T11b (config/parsing paths) at Iteration 7 if scope becomes too broad.
+
+## Cross-phase consistency check
+
+Spot-checks against prior phases:
+
+| Prior-phase claim | Phase 5 confirmation | Status |
+|---|---|---|
+| Phase 1 F-6: `_seq` overflow untested | TASK-T1; cross-phase row (line 144) | PASS |
+| Phase 1 F-7: no integration test against Go reference gateway | TASK-T13; cross-phase row (line 145) | PASS |
+| Phase 2 R-6: no negative-case BHTTP tests | TASK-T5; cross-phase row (line 146) | PASS |
+| Phase 2 F2.6b: 8-byte varint silent overflow | TASK-T4 / NG-1; cross-phase row (line 155) | PASS |
+| Phase 3 O-2 / TASK-O1: `symLen > 4` silent ignore | TASK-T8; cross-phase row (line 157) | PASS |
+| Phase 3 TASK-O7 items 1–4 | TASK-T10, TASK-T9, TASK-T8, TASK-T9 (partial) | PASS — note TASK-O7 item 4 marked PARTIAL with explanation (`research.md:161`) which is accurate against `ohttp_test.dart:157–162`. |
+| Phase 3 O-9 / TASK-O5: SecretBoxAuthenticationError unwrapped | TASK-T9; cross-phase row (line 163) | PASS |
+| Phase 4 C-1..C-10: no `OhttpClient` tests | TASK-T11; cross-phase rows (lines 164–173) | PASS |
+| Phase 4 C-11: SecretBoxAuthenticationError reaches wallet boundary | TASK-T9 cross-phase note only | PARTIAL — see I-3 (missing from confirmation table) |
+| Phase 4 C-12 | not addressed | NOT FOUND — see I-3 |
+
+## Read-only constraint verification
+
+`git status` at review time:
+- `M  specs/.current/AW-2865/tasklist.md` — progress-table tick-off for Iteration 5 only.
+- `?? specs/.current/AW-2865/phase-5/` — all four artifacts (prd.md, plan.md, research.md, tasks.md).
+
+No file in `lib/`, `test/`, `pubspec.yaml`, or `example/` is modified or added. PRD constraint 1 ("read-only audit") and Definition of Done item 3 are satisfied.
+
+## Severity-discipline check
+
+| Severity | Count | Entries |
+|---|---|---|
+| BLOCKER | 0 | (none) |
+| HIGH | 11 | TASK-T1, T-T2, T-T3, T-T4, T-T5, T-T8, T-T9, T-T10, T-T11, T-T12, T-T13 |
+| IMPROVEMENT | 2 | TASK-T6, T-T7 |
+
+The 0 BLOCKER count is justified at `plan.md:247` — every test gap exposes an implementation finding already classified at most HIGH in prior phases. Cross-checked against vision §2 severity definitions: this assignment is internally consistent.
+
+The two IMPROVEMENT entries (TASK-T6 unknown framing indicator; TASK-T7 statusCode out-of-range) are correctly downgraded because the underlying behaviors do not cause memory exhaustion or silent ciphertext acceptance.
+
+## Summary for the engineering lead
+
+Phase 5 is sound and ready to feed Iteration 7. Two items deserve attention before compilation:
+
+1. **Reconcile the `tasks.md` draft-task summary table with `research.md` TASK-T entries** (Important I-2). The current divergence risks dropping five entries (T-B4, T-B5, T-O2, T-O5, T-O6) and may double-count via TASK-T7 / TASK-T11. The fix is purely editorial: pick one canonical list (recommend research.md) and either promote the missing five to TASK-T14..TASK-T18 or explicitly delete them with rationale.
+
+2. **Add C-11 (and likely C-12) to the cross-phase confirmation table** (Important I-3). The PRD explicitly names C-11 in Scenario D; its absence from the table is the only PRD-conformance gap in the phase.
+
+Both are quality-of-record issues, not correctness issues. Phase 5 is otherwise approved.
+
+## Files referenced
+
+- specs/.current/AW-2865/phase-5/prd.md
+- specs/.current/AW-2865/phase-5/plan.md
+- specs/.current/AW-2865/phase-5/research.md
+- specs/.current/AW-2865/phase-5/tasks.md
+- specs/.current/AW-2865/tasklist.md
+- specs/.current/AW-2865/phase-1/research.md (cross-phase F-N IDs)
+- specs/.current/AW-2865/phase-2/research.md (cross-phase R-N IDs)
+- specs/.current/AW-2865/phase-2/tasks.md (cross-phase F2.x IDs)
+- specs/.current/AW-2865/phase-3/research.md (cross-phase O-N / TASK-O IDs)
+- specs/.current/AW-2865/phase-4/research.md (cross-phase C-1..C-12 IDs)
+- test/hpke_test.dart
+- test/bhttp_test.dart
+- test/ohttp_test.dart

@@ -12,13 +12,13 @@ Based on [vision.md](./vision.md).
 | 2 | Read BHTTP layer and assess parser robustness | ✅ Done | 8/8 |
 | 3 | Read OHTTP layer and assess encap/decap correctness | ✅ Done | 11/11 |
 | 4 | Read client layer and assess network reliability and KeyConfig lifecycle | ✅ Done | 12/12 |
-| 5 | Review test suite coverage gaps | ⬜ Pending |  |
+| 5 | Review test suite coverage gaps | ✅ Done | 11/11 |
 | 6 | Review privacy risks, observability gaps, and documentation | ⬜ Pending |  |
 | 7 | Compile findings into per-task Markdown files | ⬜ Pending |  |
 
 **Legend:** ⬜ Pending | 🔄 In Progress | ✅ Done | ❌ Blocked
 
-**Current Phase:** 4
+**Current Phase:** 5
 
 ---
 
@@ -86,18 +86,18 @@ Based on [vision.md](./vision.md).
 **Goal:** Audit `lib/src/ohttp_client.dart` for timeout/retry/cancellation gaps, KeyConfig caching policy, scheme enforcement, and `sendDirect()` bypass risks.
 
 ### `lib/src/ohttp_client.dart`
-- [ ] Read the full file (use `ast-index outline` first).
-- [ ] Confirm that `OhttpGatewayConfig.gatewayBaseUrl` has no `https`-scheme enforcement — note that plain HTTP silently accepted.
-- [ ] Confirm that `configPath` and `requestPath` are concatenated as strings (not `Uri`-normalized) — note potential double-slash or path-traversal risk.
-- [ ] Confirm that `targetAuthority` is embedded verbatim into the BHTTP request with no allow-list check.
-- [ ] Confirm that `directBaseUrl` exists in the same config object as the OHTTP paths and that `sendDirect()` has no warning about bypassing OHTTP.
-- [ ] Trace the KeyConfig GET call: confirm `http.Client.get()` has no timeout and no retry, and that a fresh fetch occurs on every `send()` invocation (no caching).
-- [ ] Trace the gateway POST call: confirm `http.Client.post()` has no timeout, no retry, and no cancellation hook.
-- [ ] Confirm that all non-200 HTTP responses throw generic `Exception` (no typed error hierarchy, no distinction between 4xx and 5xx).
-- [ ] Confirm that network errors (DNS failure, connection reset) surface as untyped exceptions.
-- [ ] Confirm that response body and headers have no size cap before `bhttp.parseResponse`.
-- [ ] Note that `OhttpHeader.name` is not lowercased on the response side (inconsistent with request side).
-- [ ] Record each finding as a draft task entry (file, line range, concern category, severity).
+- [x] Read the full file (use `ast-index outline` first).
+- [x] Confirm that `OhttpGatewayConfig.gatewayBaseUrl` has no `https`-scheme enforcement — note that plain HTTP silently accepted.
+- [x] Confirm that `configPath` and `requestPath` are concatenated as strings (not `Uri`-normalized) — note potential double-slash or path-traversal risk.
+- [x] Confirm that `targetAuthority` is embedded verbatim into the BHTTP request with no allow-list check.
+- [x] Confirm that `directBaseUrl` exists in the same config object as the OHTTP paths and that `sendDirect()` has no warning about bypassing OHTTP.
+- [x] Trace the KeyConfig GET call: confirm `http.Client.get()` has no timeout and no retry, and that a fresh fetch occurs on every `send()` invocation (no caching).
+- [x] Trace the gateway POST call: confirm `http.Client.post()` has no timeout, no retry, and no cancellation hook.
+- [x] Confirm that all non-200 HTTP responses throw generic `Exception` (no typed error hierarchy, no distinction between 4xx and 5xx).
+- [x] Confirm that network errors (DNS failure, connection reset) surface as untyped exceptions.
+- [x] Confirm that response body and headers have no size cap before `bhttp.parseResponse`.
+- [x] Note that `OhttpHeader.name` is not lowercased on the response side (inconsistent with request side).
+- [x] Record each finding as a draft task entry (file, line range, concern category, severity).
 
 **Test:** No code is changed. Verification is: the "no timeout" finding and the "no KeyConfig caching" finding each cite the specific `http.Client` call site line in `ohttp_client.dart`.
 
@@ -108,21 +108,21 @@ Based on [vision.md](./vision.md).
 **Goal:** Read all three test files and identify negative-case, fuzz/property, and end-to-end test gaps relative to the implementation surface.
 
 ### `test/hpke_test.dart`
-- [ ] Read the file.
-- [ ] Confirm it uses `testKeyPair` injection to reproduce RFC 9180 Appendix A.1 vectors — note which specific vectors are covered.
-- [ ] Identify missing cases: sequence-number overflow, `export()` with wrong length, invalid public key input.
+- [x] Read the file.
+- [x] Confirm it uses `testKeyPair` injection to reproduce RFC 9180 Appendix A.1 vectors — note which specific vectors are covered.
+- [x] Identify missing cases: sequence-number overflow, `export()` with wrong length, invalid public key input.
 
 ### `test/bhttp_test.dart`
-- [ ] Read the file.
-- [ ] Confirm varint round-trip tests cover 1/2/4/8-byte boundaries.
-- [ ] Identify missing cases: truncated body, oversized `symLen`, unknown framing indicator, malformed header (no colon separator).
+- [x] Read the file.
+- [x] Confirm varint round-trip tests cover 1/2/4/8-byte boundaries.
+- [x] Identify missing cases: truncated body, oversized `symLen`, unknown framing indicator, malformed header (no colon separator).
 
 ### `test/ohttp_test.dart`
-- [ ] Read the file.
-- [ ] Identify missing cases: malformed KeyConfig (short buffer, extra KDF+AEAD pairs), AEAD auth failure (tampered ciphertext), empty response body, KeyConfig with unknown KEM/KDF/AEAD IDs.
-- [ ] Note that there are no integration tests against a live gateway.
-- [ ] Note absence of fuzz / property-based tests across all three files.
-- [ ] Record each gap as a draft task entry with the specific test file, missing scenario, and severity.
+- [x] Read the file.
+- [x] Identify missing cases: malformed KeyConfig (short buffer, extra KDF+AEAD pairs), AEAD auth failure (tampered ciphertext), empty response body, KeyConfig with unknown KEM/KDF/AEAD IDs.
+- [x] Note that there are no integration tests against a live gateway.
+- [x] Note absence of fuzz / property-based tests across all three files.
+- [x] Record each gap as a draft task entry with the specific test file, missing scenario, and severity.
 
 **Test:** No code is changed. Verification is: the gap list is grounded in specific test-file line counts and identified scenario names — no vague "needs more tests" entries.
 
