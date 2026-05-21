@@ -18,6 +18,8 @@ Based on [vision.md](./vision.md).
 
 **Legend:** ⬜ Pending | 🔄 In Progress | ✅ Done | ❌ Blocked
 
+**Current Phase:** 1
+
 ---
 
 ## Iteration 1: Read HPKE layer and compare with RFC 9180
