@@ -8,7 +8,7 @@ Based on [vision.md](./vision.md).
 
 | # | Iteration | Status | Notes |
 |---|-----------|--------|-------|
-| 1 | Read HPKE layer and compare with RFC 9180 | ⬜ Pending |  |
+| 1 | Read HPKE layer and compare with RFC 9180 | ✅ Done | 10/10 |
 | 2 | Read BHTTP layer and assess parser robustness | ⬜ Pending |  |
 | 3 | Read OHTTP layer and assess encap/decap correctness | ⬜ Pending |  |
 | 4 | Read client layer and assess network reliability and KeyConfig lifecycle | ⬜ Pending |  |
@@ -18,7 +18,7 @@ Based on [vision.md](./vision.md).
 
 **Legend:** ⬜ Pending | 🔄 In Progress | ✅ Done | ❌ Blocked
 
-**Current Phase:** 1
+**Current Phase:** 2
 
 ---
 
@@ -27,16 +27,16 @@ Based on [vision.md](./vision.md).
 **Goal:** Audit `lib/src/hpke.dart` against RFC 9180 to identify deviations, missing guards, and test-seam risks.
 
 ### `lib/src/hpke.dart`
-- [ ] Read the full file (use `ast-index outline lib/src/hpke.dart` first, then read targeted slices).
-- [ ] Verify that `LabeledExtract` and `LabeledExpand` match the labeled-KDF construction in RFC 9180 §4 (suite ID, label strings, lengths).
-- [ ] Verify that `KEM Encap` matches RFC 9180 §4.1 (DH step, `ExtractAndExpand`, `shared_secret` derivation).
-- [ ] Verify that `setupBaseS` key-schedule matches RFC 9180 §5.1 (`key_schedule_s`, `mode_base = 0`).
-- [ ] Verify nonce derivation in `HpkeSenderContext.seal` matches RFC 9180 §5.2 (XOR of `baseNonce` with counter as big-endian `Nn`-byte integer).
-- [ ] Verify `HpkeSenderContext.export` matches RFC 9180 §5.3 (`LabeledExpand(exporterSecret, "sec", context, L)`).
-- [ ] Note whether `_seq` overflow guard throws a typed exception that callers can catch cleanly.
-- [ ] Note the `testKeyPair` injection point: confirm it is reachable from production call sites (`setupBaseS` optional parameter).
-- [ ] Note absence of zeroization for `key`, `baseNonce`, `exporterSecret` after use.
-- [ ] Record each finding as a draft task entry (file, line range, RFC section, severity: BLOCKER / HIGH / IMPROVEMENT).
+- [x] Read the full file (use `ast-index outline lib/src/hpke.dart` first, then read targeted slices).
+- [x] Verify that `LabeledExtract` and `LabeledExpand` match the labeled-KDF construction in RFC 9180 §4 (suite ID, label strings, lengths).
+- [x] Verify that `KEM Encap` matches RFC 9180 §4.1 (DH step, `ExtractAndExpand`, `shared_secret` derivation).
+- [x] Verify that `setupBaseS` key-schedule matches RFC 9180 §5.1 (`key_schedule_s`, `mode_base = 0`).
+- [x] Verify nonce derivation in `HpkeSenderContext.seal` matches RFC 9180 §5.2 (XOR of `baseNonce` with counter as big-endian `Nn`-byte integer).
+- [x] Verify `HpkeSenderContext.export` matches RFC 9180 §5.3 (`LabeledExpand(exporterSecret, "sec", context, L)`).
+- [x] Note whether `_seq` overflow guard throws a typed exception that callers can catch cleanly.
+- [x] Note the `testKeyPair` injection point: confirm it is reachable from production call sites (`setupBaseS` optional parameter).
+- [x] Note absence of zeroization for `key`, `baseNonce`, `exporterSecret` after use.
+- [x] Record each finding as a draft task entry (file, line range, RFC section, severity: BLOCKER / HIGH / IMPROVEMENT).
 
 **Test:** No code is changed. Verification is: all findings are supported by a specific line reference in `hpke.dart` and an RFC section number. Review your notes against the scrutiny table in `vision.md §4` before proceeding.
 
