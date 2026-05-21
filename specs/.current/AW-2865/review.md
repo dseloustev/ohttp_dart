@@ -529,3 +529,187 @@ Defensible. Documenting this for completeness: a future Phase 5 reviewer should 
 - specs/.current/AW-2865/phase-2/summary.md
 - lib/src/ohttp.dart
 - lib/ohttp_dart.dart
+
+---
+
+# Phase 4 Review — OhttpClient Layer Audit
+
+**Date:** 2026-05-21
+**Mode:** ticket (read-only audit phase)
+**Scope file:** `lib/src/ohttp_client.dart` (177 lines)
+**Artifacts reviewed:**
+- specs/.current/AW-2865/phase-4/prd.md (Status: PRD_READY)
+- specs/.current/AW-2865/phase-4/plan.md (Status: PLAN_APPROVED)
+- specs/.current/AW-2865/phase-4/research.md (Status: RESEARCH_COMPLETE)
+- specs/.current/AW-2865/phase-4/tasks.md (12 of 12 tasks checked)
+- lib/src/ohttp_client.dart
+
+## Verdict
+
+**APPROVED with minor housekeeping notes.** All 12 audit tasks are complete; every finding cites a real, verifiable line in `lib/src/ohttp_client.dart`; cross-layer references are present and accurate; severities are internally consistent with the PRD risk table and research.md; no source under `lib/` or `test/` was modified.
+
+No **Blocking** issues. Three **Important** items (severity-table cross-check, header construction line drift in research.md, claim drift in research §"Patterns Used"). Three **Nice-to-have** clarifications.
+
+---
+
+## Acceptance criteria check (review criteria 1–8)
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | All 12 tasks marked `[x]` | YES — `grep -c "^- \[x\]"` returns 12, `grep -c "^- \[ \]"` returns 0 |
+| 2 | Each task has inline finding with `file:line` citation | YES — every task 4.2–4.11 cites at least one specific line in `lib/src/ohttp_client.dart`; 4.1 cites line ranges; 4.12 references research.md §"Draft Task Entries" |
+| 3 | Finding IDs C-1..C-12 consistent between tasks.md and research.md | YES — twelve findings, IDs match one-to-one; categories and severities identical |
+| 4 | Severity labels match PRD risk table and research.md | YES with one ambiguity (see Important I-1 below) — HIGH for C-1, C-3, C-4, C-5, C-6, C-7, C-8, C-9, C-11; IMPROVEMENT for C-2, C-10, C-12 |
+| 5 | Cross-layer references present (C-9 → Phase 2 R-2; C-11 → Phase 3 O-9/TASK-O5) | YES — research.md §"Cross-Layer References" table maps both explicitly; tasks.md 4.10 says "Two-layer amplification with Phase 2 finding R-2"; tasks.md 4.12 says "TASK-C11 resolved by Phase 3 TASK-O5 at ohttp.dart:219" |
+| 6 | "no timeout" and "no KeyConfig caching" findings each cite specific `http.Client` call-site lines | YES — C-5 cites `ohttp_client.dart:81-89` (`_httpClient.get` on line 81); C-6 cites `ohttp_client.dart:115-122` (`_httpClient.post` on line 115). Both call sites verified in the source |
+| 7 | No claims in tasks.md contradict ohttp_client.dart | YES (claims are accurate); see Important I-2 for a small drift in research.md (line 169 vs actual 168) that did not propagate to tasks.md |
+| 8 | No code changes in lib/ or test/ | YES — `git diff HEAD -- lib/ test/` returns empty; only `specs/.current/AW-2865/tasklist.md` and `specs/.current/AW-2865/phase-4/` are touched in the working tree |
+
+---
+
+## Line-by-line citation verification against lib/src/ohttp_client.dart
+
+| Citation (where appearing) | Source-of-truth line(s) | Match? |
+|---|---|---|
+| C-1 / 4.2: constructor 43-50 | constructor at 43-50; class block 35-53 | YES — both framings (constructor 43-50, class 35-53) are correct |
+| C-1 / 4.2: GET at line 82 | `Uri.parse('${gateway.gatewayBaseUrl}${gateway.configPath}'),` is line 82 | YES |
+| C-1 / 4.2: POST at line 116 | `Uri.parse('${gateway.gatewayBaseUrl}${gateway.requestPath}'),` is line 116 | YES |
+| C-2 / 4.3: lines 82, 116, 154 | lines confirmed above; line 154 is `Uri.parse('${gateway.effectiveDirectBaseUrl}$path')` | YES |
+| C-3 / 4.4: lines 97-104 (serializeRequest with authority) | `bhttp.serializeRequest(...)` spans 97-104; `authority: gateway.targetAuthority` on line 100 | YES |
+| C-4 / 4.5: directBaseUrl at line 41; effectiveDirectBaseUrl at 52; sendDirect at 148-171 | `final String? directBaseUrl;` is line 41; `String get effectiveDirectBaseUrl => directBaseUrl ?? gatewayBaseUrl;` is line 52; sendDirect signature starts at 148, closing brace 171 | YES |
+| C-5 / 4.6: `_httpClient.get(Uri.parse(...))` at lines 81-83 | YES — `final configResponse = await _httpClient.get(` is line 81; expression continues to line 83 | YES |
+| C-5 / 4.6: instance fields at lines 60-61 | `final http.Client _httpClient;` is line 60; `final OhttpGatewayConfig gateway;` is line 61 | YES |
+| C-6 / 4.7: `_httpClient.post(...)` at lines 115-119 | `final gatewayResponse = await _httpClient.post(` is line 115; closing `);` is line 119 | YES |
+| C-7 / 4.8: `throw Exception(...)` at 84-87 and 120-122 | KeyConfig branch is lines 84-88 (if at 84, throw at 85-87, close `}` 88) — claim 84-87 is precise; Gateway branch is lines 120-122 (if at 120, throw at 121, close `}` 122) — claim 120-122 is precise | YES |
+| C-8 / 4.9: send() body lines 69-145 | signature starts line 69; closing `}` line 145 | YES |
+| C-9 / 4.10: ohttpDecapsulate at 129-133; parseResponse at 136 | `await ohttpDecapsulate(` is line 129; closing `);` is line 133; `bhttp.parseResponse(binaryResponse)` is line 136 | YES |
+| C-10 / 4.11: send response headers built at line 139 | `headers: bhttpResp.headers.map((h) => OhttpHeader(name: h.$1, value: h.$2)).toList(),` is line 139 | YES |
+| C-10 / 4.11: sendDirect response headers at line 168 | `headers: streamedResponse.headers.entries.map((e) => OhttpHeader(name: e.key, value: e.value)).toList(),` is line 168 | YES — tasks.md is correct |
+| C-11 / 4.12: TASK-O5 at ohttp.dart:219 | per Phase 3 review record | accepted on trust from prior phase |
+| C-12 / 4.12 (research only): `onLog` first call at lines 77-78 | `'Fetching OHTTP KeyConfig from ${gateway.gatewayBaseUrl}${gateway.configPath}...'` is line 77 (closing `);` line 78) | YES |
+
+All citations in tasks.md and research.md match the actual file.
+
+---
+
+## Cross-layer reference verification (criterion 5)
+
+**C-9 → Phase 2 R-2:** Confirmed.
+- tasks.md task 4.10 says "Two-layer amplification with Phase 2 finding R-2."
+- research.md §"Limitations & Risks" C-9 says "Two-layer amplification (cross-reference Phase 2 finding R-2): 1. `ohttp_client.dart` imposes no cap on the gateway response body before decapsulation. 2. `bhttp.parseResponse` imposes no cap on header count or total header size (`bhttp.dart:165-182`, Phase 2 R-2)."
+- research.md §"Cross-Layer References" table row "R-2 — No header-count / header-size guard in `parseResponse` | C-9 | No size cap at client layer + no cap in parser = two-layer unbounded allocation."
+
+**C-11 → Phase 3 O-9 / TASK-O5:** Confirmed.
+- tasks.md task 4.12 says "TASK-C11 resolved by Phase 3 TASK-O5 at ohttp.dart:219."
+- research.md C-11 says "the existing Phase 3 TASK-O5 ('Wrap `SecretBoxAuthenticationError` in `OhttpAuthenticationException` in `ohttp.dart`') remains the correct remediation site."
+- research.md §"Cross-Layer References" table row "O-9 — `SecretBoxAuthenticationError` propagates unwrapped | C-11 | Confirmed at wallet boundary; TASK-O5 remains the correct fix site."
+
+Both required cross-layer references are present and mutually consistent.
+
+---
+
+## Findings
+
+### Blocking
+
+None.
+
+### Important
+
+**I-1 — Severity label cross-check: PRD risk table omits C-12, and C-11 severity is implicit**
+
+PRD §Risks (lines 119–130) enumerates risks for C-1..C-10 explicitly, but **C-12 (`onLog` logs `gatewayBaseUrl` unconditionally; IMPROVEMENT)** is not in the PRD risk table. research.md §"Limitations & Risks" lifts C-12 as a stand-alone finding and tasks.md §4.12 implicitly accepts it via research.md, but the PRD itself never names this risk. C-11 is also absent from the PRD risk table (it is folded into the Phase 3 cross-reference).
+
+This is not a contradiction (research.md and tasks.md agree internally and assign IMPROVEMENT/HIGH respectively), but the PRD is the authoritative severity-table source for the phase. Recommend either:
+1. Adding a row to PRD §Risks for C-11 (HIGH, cross-layer confirmation) and C-12 (IMPROVEMENT, logging), or
+2. Adding a one-line note "C-11 and C-12 are confirmed in research.md without separate PRD risk-table entries because they are cross-layer / observability-only items."
+
+Either resolves the ambiguity before Iteration 7 compiles the consolidated task list.
+
+**I-2 — research.md line drift for `sendDirect()` response header construction**
+
+research.md §"Current Endpoints & Contracts" line 217 (in the file, the prose paragraph) cites `sendDirect` response headers as coming from "`streamedResponse.headers.entries`" — correct in substance — and research.md §"Limitations & Risks" Finding C-10 attributes the construction to "line 169":
+
+> In `sendDirect()`, response headers are built at line 169:
+
+The actual line is **168**, not 169. tasks.md task 4.11 correctly cites line 168. The +1 drift exists only in research.md C-10 text and the §"Current Endpoints & Contracts" "`OhttpHeader(name: h.$1, value: h.$2)` at line 139" table row remains correct. This is the same convention discrepancy noted in the Phase 3 review (N-1) and indicates research.md was written against a `cat -n`-style numbering that off-by-ones a multi-line statement.
+
+Fix: edit research.md line ~500 to "at line 168".
+
+**I-3 — research.md §"Patterns Used" item 3 claim about `onLog` privacy contradicts C-12**
+
+research.md §"Patterns Used" item 3 (line 231) asserts:
+
+> Only the gateway URL and byte counts are logged — no key material. Pattern is sound for observability but `sendDirect()` has no equivalent callback.
+
+But finding C-12 (lines 543–565) classifies "logs `gateway.gatewayBaseUrl` at every `send()` call" as an IMPROVEMENT against `vision.md §7` constraint 6 ("`gatewayBaseUrl` at DEBUG or lower in production builds" must not be logged). "Pattern is sound for observability" is too strong given C-12. Recommend softening the §Patterns Used wording to "Pattern logs no key material, but C-12 records that `gatewayBaseUrl` interpolation violates vision §7 constraint 6."
+
+This is purely a documentation consistency item; tasks.md and the C-12 finding itself are correct.
+
+### Nice-to-have
+
+**N-1 — tasks.md 4.1 cites OhttpGatewayConfig at 35–53 and OhttpClient at 59–176; class actually closes at line 176 but file extends to 177**
+
+The class `OhttpClient` body ends at line 176 (closing `}`) and line 177 is the final newline / EOF. The "59–176" range is correct for the class declaration. No action required; recording for completeness.
+
+**N-2 — Task 4.5 cites sendDirect at "lines 148–171"; research.md table also says 148-171**
+
+The actual `sendDirect` block is 148–171 (signature starts at 148 — `Future<OhttpResponse> sendDirect({` — closing `}` at 171). Correct. The previous Phase 3 review N-pattern about line counts does not apply here; numbers match exactly.
+
+**N-3 — research.md "New Technical Questions" #2 (sendDirect → gatewayBaseUrl footgun when directBaseUrl is null) and #3 (KeyConfig cache invalidation on rotation) are not yet surfaced into Phase 4 tasks**
+
+Both are flagged as design questions for TASK-C4 and TASK-C5 respectively. The deferred-decision approach is consistent with the read-only audit constraint, but Iteration 7 should pick these up explicitly before consolidating per-task Markdown files. Suggest noting them in `specs/.current/AW-2865/tasklist.md` so they do not fall through the cracks (same recommendation pattern used in Phase 3 review N-5).
+
+---
+
+## Severity table consistency check (criterion 4)
+
+| Finding | PRD §Risks severity | research.md severity | tasks.md severity | Consistent? |
+|---|---|---|---|---|
+| C-1 (https) | HIGH | HIGH | HIGH | YES |
+| C-2 (string concat) | IMPROVEMENT | IMPROVEMENT | IMPROVEMENT | YES |
+| C-3 (targetAuthority) | HIGH | HIGH | HIGH | YES |
+| C-4 (sendDirect) | HIGH | HIGH | HIGH | YES |
+| C-5 (KeyConfig GET) | HIGH | HIGH | HIGH | YES |
+| C-6 (gateway POST) | HIGH | HIGH | HIGH | YES |
+| C-7 (Exception) | HIGH | HIGH | HIGH | YES |
+| C-8 (network errors) | (folded into C-7 row implicitly) | HIGH | HIGH | YES (semantic) |
+| C-9 (size cap) | HIGH | HIGH | HIGH | YES |
+| C-10 (header case) | IMPROVEMENT | IMPROVEMENT | IMPROVEMENT | YES |
+| C-11 (SecretBox cross-ref) | (not in PRD §Risks) | HIGH | HIGH (via cross-ref) | partial — see I-1 |
+| C-12 (onLog URL log) | (not in PRD §Risks) | IMPROVEMENT | IMPROVEMENT (via research) | partial — see I-1 |
+
+10 of 12 fully consistent; 2 (C-11, C-12) absent from PRD §Risks but agree between research.md and tasks.md. Documented under Important I-1.
+
+---
+
+## Read-only constraint verification (criterion 8)
+
+`git diff HEAD -- lib/ test/` produces no output. `git status --short lib/ test/` produces no output. The constraint is honored. The only working-tree modifications are inside `specs/.current/AW-2865/` (tasklist.md modification and the `phase-4/` directory). No source under `lib/`, `test/`, `pubspec.yaml`, or `example/` is changed.
+
+---
+
+## Conclusion
+
+- Phase 4 audit deliverable is **complete and consistent** with PRD acceptance criteria. All 12 tasks (4.1–4.12) are checked; every line citation verified against `lib/src/ohttp_client.dart`; all required cross-layer references (C-9 → Phase 2 R-2; C-11 → Phase 3 TASK-O5) are present and mutually consistent; no source under `lib/` or `test/` was modified.
+- **Eight HIGH-severity findings** (C-1 https-enforcement, C-3 targetAuthority SSRF, C-4 sendDirect bypass, C-5 KeyConfig caching/timeout, C-6 gateway POST timeout, C-7 untyped Exception, C-8 undocumented throws contract, C-9 response size cap) and **three IMPROVEMENT findings** (C-2 Uri.resolve, C-10 header lowercasing, C-12 onLog URL leak) recommended for the follow-up backlog. **One cross-layer confirmation** (C-11) resolved by Phase 3 TASK-O5. No BLOCKER identified at the client layer.
+- **Three Important housekeeping items** before Iteration 7: (I-1) reconcile PRD §Risks coverage for C-11 and C-12; (I-2) fix research.md C-10 line citation drift (169 → 168); (I-3) soften research.md §"Patterns Used" item 3 to align with C-12. None block the audit's findings or remediation tasks.
+- Phase 4 is ready to close. The 12 draft task entries are independently actionable and ready for Iteration 7 consolidation into per-task Markdown files alongside Phase 1–3 outputs.
+
+---
+
+## Files referenced
+
+- specs/.current/AW-2865/phase-4/prd.md
+- specs/.current/AW-2865/phase-4/plan.md
+- specs/.current/AW-2865/phase-4/research.md
+- specs/.current/AW-2865/phase-4/tasks.md
+- specs/.current/AW-2865/vision.md
+- specs/.current/AW-2865/tasklist.md
+- specs/.current/AW-2865/phase-1/summary.md (cross-layer)
+- specs/.current/AW-2865/phase-2/summary.md (cross-layer)
+- specs/.current/AW-2865/phase-3/summary.md (cross-layer; via review.md Phase 3 section)
+- lib/src/ohttp_client.dart
+- lib/src/ohttp.dart (cross-layer; TASK-O5 site at line 219)
+- lib/src/bhttp.dart (cross-layer; R-2 site at lines 165-182)
+- lib/ohttp_dart.dart

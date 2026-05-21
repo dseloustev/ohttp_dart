@@ -11,7 +11,7 @@ Based on [vision.md](./vision.md).
 | 1 | Read HPKE layer and compare with RFC 9180 | ✅ Done | 10/10 |
 | 2 | Read BHTTP layer and assess parser robustness | ✅ Done | 8/8 |
 | 3 | Read OHTTP layer and assess encap/decap correctness | ✅ Done | 11/11 |
-| 4 | Read client layer and assess network reliability and KeyConfig lifecycle | ⬜ Pending |  |
+| 4 | Read client layer and assess network reliability and KeyConfig lifecycle | ✅ Done | 12/12 |
 | 5 | Review test suite coverage gaps | ⬜ Pending |  |
 | 6 | Review privacy risks, observability gaps, and documentation | ⬜ Pending |  |
 | 7 | Compile findings into per-task Markdown files | ⬜ Pending |  |

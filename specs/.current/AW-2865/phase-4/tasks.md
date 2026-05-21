@@ -89,18 +89,53 @@ Same OhttpGatewayConfig object → sendDirect() → plaintext HTTP to directBase
 
 ## Tasks
 
-- [ ] 4.1 Read the full file (use `ast-index outline` first).
-- [ ] 4.2 Confirm that `OhttpGatewayConfig.gatewayBaseUrl` has no `https`-scheme enforcement — note that plain HTTP silently accepted.
-- [ ] 4.3 Confirm that `configPath` and `requestPath` are concatenated as strings (not `Uri`-normalized) — note potential double-slash or path-traversal risk.
-- [ ] 4.4 Confirm that `targetAuthority` is embedded verbatim into the BHTTP request with no allow-list check.
-- [ ] 4.5 Confirm that `directBaseUrl` exists in the same config object as the OHTTP paths and that `sendDirect()` has no warning about bypassing OHTTP.
-- [ ] 4.6 Trace the KeyConfig GET call: confirm `http.Client.get()` has no timeout and no retry, and that a fresh fetch occurs on every `send()` invocation (no caching).
-- [ ] 4.7 Trace the gateway POST call: confirm `http.Client.post()` has no timeout, no retry, and no cancellation hook.
-- [ ] 4.8 Confirm that all non-200 HTTP responses throw generic `Exception` (no typed error hierarchy, no distinction between 4xx and 5xx).
-- [ ] 4.9 Confirm that network errors (DNS failure, connection reset) surface as untyped exceptions.
-- [ ] 4.10 Confirm that response body and headers have no size cap before `bhttp.parseResponse`.
-- [ ] 4.11 Note that `OhttpHeader.name` is not lowercased on the response side (inconsistent with request side).
-- [ ] 4.12 Record each finding as a draft task entry (file, line range, concern category, severity).
+- [x] 4.1 Read the full file (use `ast-index outline` first).
+
+  4.1: Verified. lib/src/ohttp_client.dart is 177 lines. File contains 4 top-level declarations: OhttpHeader (12–17), OhttpResponse (19–29), OhttpGatewayConfig (35–53), OhttpClient (59–176). See research.md §"Current Endpoints & Contracts" for the full call-site map.
+
+- [x] 4.2 Confirm that `OhttpGatewayConfig.gatewayBaseUrl` has no `https`-scheme enforcement — note that plain HTTP silently accepted.
+
+  4.2: Verified — Finding C-1 (HIGH, Scheme enforcement / Transport security). OhttpGatewayConfig constructor at lib/src/ohttp_client.dart:43-50 accepts gatewayBaseUrl as a bare String with no validation. Call sites Uri.parse('${gateway.gatewayBaseUrl}${gateway.configPath}') at line 82 and Uri.parse('${gateway.gatewayBaseUrl}${gateway.requestPath}') at line 116 accept http:// silently. Violates RFC 9458 §1 outer-channel TLS assumption.
+
+- [x] 4.3 Confirm that `configPath` and `requestPath` are concatenated as strings (not `Uri`-normalized) — note potential double-slash or path-traversal risk.
+
+  4.3: Verified — Finding C-2 (IMPROVEMENT, URL construction). Bare string interpolation at lib/src/ohttp_client.dart:82, 116, and 154 (sendDirect). No call to Uri.resolve or Uri.https. Double-slash and .. traversal not normalized.
+
+- [x] 4.4 Confirm that `targetAuthority` is embedded verbatim into the BHTTP request with no allow-list check.
+
+  4.4: Verified — Finding C-3 (HIGH, Privacy / SSRF). bhttp.serializeRequest(... authority: gateway.targetAuthority ...) at lib/src/ohttp_client.dart:97-104 passes targetAuthority verbatim. OhttpGatewayConfig (lines 35–53) performs no validation, scheme-stripping, or allow-list check on targetAuthority.
+
+- [x] 4.5 Confirm that `directBaseUrl` exists in the same config object as the OHTTP paths and that `sendDirect()` has no warning about bypassing OHTTP.
+
+  4.5: Verified — Finding C-4 (HIGH, Privacy / Documentation). directBaseUrl is co-located with OHTTP fields at lib/src/ohttp_client.dart:41 and exposed via effectiveDirectBaseUrl getter at line 52 (which falls back to gatewayBaseUrl when null — additional footgun). sendDirect() at lines 148–171 has no doc comment, no assert, no @Deprecated annotation, and no onLog callback parameter.
+
+- [x] 4.6 Trace the KeyConfig GET call: confirm `http.Client.get()` has no timeout and no retry, and that a fresh fetch occurs on every `send()` invocation (no caching).
+
+  4.6: Verified — Finding C-5 (HIGH, Network reliability / KeyConfig lifecycle). _httpClient.get(Uri.parse(...)) at lib/src/ohttp_client.dart:81-83 has no .timeout(...), no retry loop, and no reference to any cached OhttpKeyConfig. OhttpClient instance fields (lines 60–61) are only _httpClient and gateway — no cache field. Every send() invocation performs a fresh GET.
+
+- [x] 4.7 Trace the gateway POST call: confirm `http.Client.post()` has no timeout, no retry, and no cancellation hook.
+
+  4.7: Verified — Finding C-6 (HIGH, Network reliability). _httpClient.post(...) at lib/src/ohttp_client.dart:115-119 has no .timeout(...), no 5xx retry, and no CancelableOperation integration.
+
+- [x] 4.8 Confirm that all non-200 HTTP responses throw generic `Exception` (no typed error hierarchy, no distinction between 4xx and 5xx).
+
+  4.8: Verified — Finding C-7 (HIGH, Error handling). Bare throw Exception('Failed to fetch KeyConfig: HTTP ${configResponse.statusCode}') at lib/src/ohttp_client.dart:84-87 and throw Exception('Gateway error: HTTP ${gatewayResponse.statusCode}') at lines 120–122. No typed exception class, no 4xx/5xx distinction.
+
+- [x] 4.9 Confirm that network errors (DNS failure, connection reset) surface as untyped exceptions.
+
+  4.9: Verified — Finding C-8 (HIGH, Error handling / API contract). send() body (lib/src/ohttp_client.dart:69-145) has no try/catch. Untyped exceptions reaching the wallet caller: http.ClientException (DNS/connection refused), _ClientSocketException (private package:http type), dart:io.HandshakeException (TLS — NOT wrapped by package:http 1.6.0), plus FormatException, UnsupportedError, SecretBoxAuthenticationError, RangeError. No documented throws contract on send() signature.
+
+- [x] 4.10 Confirm that response body and headers have no size cap before `bhttp.parseResponse`.
+
+  4.10: Verified — Finding C-9 (HIGH, Parser robustness / DoS). gatewayResponse.bodyBytes passed to ohttpDecapsulate at lib/src/ohttp_client.dart:129-133 with no length check. binaryResponse passed to bhttp.parseResponse at line 136 with no length check. Two-layer amplification with Phase 2 finding R-2.
+
+- [x] 4.11 Note that `OhttpHeader.name` is not lowercased on the response side (inconsistent with request side).
+
+  4.11: Verified — Finding C-10 (IMPROVEMENT, API consistency). send() response construction at lib/src/ohttp_client.dart:139 passes h.$1 (header name as returned by bhttp.parseResponse, no normalization) into OhttpHeader(name: h.$1, ...). sendDirect() at line 168 uses streamedResponse.headers.entries which dart:io HttpHeaders already lowercases. Inconsistent; violates RFC 7230 §3.2 case-insensitive contract.
+
+- [x] 4.12 Record each finding as a draft task entry (file, line range, concern category, severity).
+
+  4.12: Verified — completed in research.md §"Draft Task Entries" (TASK-C1 through TASK-C12). Each draft task carries: stable ID, single-line imperative title, severity, primary file:lines remediation site, concern category. TASK-C11 resolved by Phase 3 TASK-O5 at ohttp.dart:219. TASK-C7 and TASK-C8 flagged as merge candidates.
 
 ## Acceptance Criteria
 
