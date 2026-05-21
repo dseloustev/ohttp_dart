@@ -33,8 +33,8 @@
 
 ### `specs/.current/AW-2865/tasks/` (new directory)
 
-- [ ] 7.1 Create the `tasks/` directory under `specs/.current/AW-2865/`.
-- [ ] 7.2 For each independently actionable finding in the **Consolidated Findings Inventory** (Technical Details §2 below), create one file named `NN-<kebab-slug>.md` (e.g., `01-ohttp-bypass-send-direct.md`). Number sequentially; BLOCKER tasks come first, then HIGH, then IMPROVEMENT. Each file must contain at minimum:
+- [x] 7.1 Create the `tasks/` directory under `specs/.current/AW-2865/`.
+- [x] 7.2 For each independently actionable finding in the **Consolidated Findings Inventory** (Technical Details §2 below), create one file named `NN-<kebab-slug>.md` (e.g., `01-ohttp-bypass-send-direct.md`). Number sequentially; BLOCKER tasks come first, then HIGH, then IMPROVEMENT. Each file must contain at minimum:
   - `# Task NN: <Title>` heading.
   - `**Severity:** BLOCKER | HIGH | IMPROVEMENT`
   - `**Vector:** <one of the eight vectors from idea.md>`
@@ -43,17 +43,17 @@
   - `## Description` — 2–5 sentences explaining the problem.
   - `## Proposed change` — what would resolve it (no code, just intent + acceptance criteria).
   - `## Acceptance criteria` — bullet list of verifiable conditions.
-- [ ] 7.3 After creating all files, verify each file has all required minimum fields (heading, Severity, Vector, Files, Evidence, Description, Proposed change, Acceptance criteria).
-- [ ] 7.4 Verify no two task files cover the same finding. Use the cross-reference IDs in §2 to detect duplicates (e.g., P6-2 and C-1 must become one file, not two).
-- [ ] 7.5 Verify all eight investigation vectors from `idea.md` appear at least once across the task files.
-- [ ] 7.6 Verify at least one task file is labelled `BLOCKER`.
+- [x] 7.3 After creating all files, verify each file has all required minimum fields (heading, Severity, Vector, Files, Evidence, Description, Proposed change, Acceptance criteria).
+- [x] 7.4 Verify no two task files cover the same finding. Use the cross-reference IDs in §2 to detect duplicates (e.g., P6-2 and C-1 must become one file, not two).
+- [x] 7.5 Verify all eight investigation vectors from `idea.md` appear at least once across the task files.
+- [x] 7.6 Verify at least one task file is labelled `BLOCKER`.
 
 ### `specs/.current/AW-2865/tasks/README.md` (new file)
 
-- [ ] 7.7 Create `README.md` with: a top-level heading, a brief executive summary (3–5 sentences) of the overall assessment, and a short note that these `.md` files are the final deliverable of AW-2865 — no Jira tickets are created automatically; engineers picking up follow-up work should reference these files directly.
-- [ ] 7.8 Add a "Blockers for production use" section listing only BLOCKER-severity task files with a one-line summary and a relative link to each.
-- [ ] 7.9 Add an "All follow-up tasks" table with columns: `# | Task title | Vector | Severity | File link`. The `File link` column links to the per-task `.md` file in this directory.
-- [ ] 7.10 Add an "Out of scope" section repeating the non-goals from `vision.md §Out of scope`.
+- [x] 7.7 Create `README.md` with: a top-level heading, a brief executive summary (3–5 sentences) of the overall assessment, and a short note that these `.md` files are the final deliverable of AW-2865 — no Jira tickets are created automatically; engineers picking up follow-up work should reference these files directly.
+- [x] 7.8 Add a "Blockers for production use" section listing only BLOCKER-severity task files with a one-line summary and a relative link to each.
+- [x] 7.9 Add an "All follow-up tasks" table with columns: `# | Task title | Vector | Severity | File link`. The `File link` column links to the per-task `.md` file in this directory.
+- [x] 7.10 Add an "Out of scope" section repeating the non-goals from `vision.md §Out of scope`.
 
 ## Acceptance Criteria
 

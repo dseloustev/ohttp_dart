@@ -1021,3 +1021,88 @@ Phase 6 is **APPROVED** with no blocking or important findings. The deliverable 
 - lib/src/hpke.dart
 - example/ohttp_dart_example.dart
 - pubspec.yaml
+
+---
+
+# Phase 7 Review — Compile Findings into Per-Task Markdown Files
+
+**Date:** 2026-05-21
+**Mode:** ticket (Phase 7)
+**Scope:** Markdown-only deliverable under `specs/.current/AW-2865/tasks/`. No source code modified.
+**Artifacts reviewed:**
+- specs/.current/AW-2865/phase-7/prd.md (Status: PRD_READY)
+- specs/.current/AW-2865/phase-7/plan.md (Status: PLAN_APPROVED)
+- specs/.current/AW-2865/phase-7/tasks.md (10/10 tasks checked)
+- specs/.current/AW-2865/tasks/README.md
+- specs/.current/AW-2865/tasks/01-ohttp-bypass-send-direct.md through 35-test-ohttp-edge-cases.md (34 task files; gap at 22 intentional)
+
+## Verdict
+
+**APPROVED.** No blocking, no important findings. Two nice-to-have observations follow.
+
+Phase 7 mechanically satisfies every PRD acceptance criterion: 34 task files on disk, each with all 8 required structural fields, gap at 22 documented in three independent places, all eight investigation vectors represented, sole BLOCKER at task 01 with `sendDirect()` evidence, task 32 escalated to HIGH with explicit original/new classification block, task 13 merges rows 13 and 22 with the §4 logging constraints reproduced inline, README index table aligned 1:1 with the file numbers on disk, all paths repo-relative, executive summary takes the required direct production-readiness stance.
+
+## Mechanical verification
+
+| Criterion | Verification command | Result |
+|---|---|---|
+| 34 task files present | `ls [0-9]*.md \| wc -l` | 34 |
+| All 8 required fields per file | per-file `grep -c` for each of the 8 markers across all 34 files | every count = 1, no field missing or duplicated in any file |
+| Severity tally | `grep -h '^\*\*Severity:\*\*' [0-9]*.md \| sort \| uniq -c` | 1 BLOCKER + 21 HIGH + 12 IMPROVEMENT = 34 |
+| Vector coverage (all 8) | `grep -h '^\*\*Vector:\*\*' [0-9]*.md \| sort \| uniq -c` | Cryptographic correctness 2, Documentation 4, Interoperability 2, KeyConfig management 1, Network reliability 3, Parser robustness 4, Privacy risks 6, Test suite 12 — all 8 vectors represented |
+| No absolute paths | `grep -nE '/(Users\|home)/\|C:\\\\' [0-9]*.md README.md` | no matches |
+| README index = files on disk | numeric extraction of file-link targets in README vs. on-disk numbers | both sets equal `{01..21, 23..35}` |
+| README severity counts | `grep -oE '\\\| (BLOCKER\|HIGH\|IMPROVEMENT) \\\|' README.md` | 1 BLOCKER + 21 HIGH + 12 IMPROVEMENT = 34, matches file tally |
+| Gap at file 22 | three corroborating notes | `README.md:50`, `13-add-structured-observability-hooks.md:7`, `phase-7/prd.md:88` (constraint 4) |
+
+## Focus-area sign-off
+
+1. **All 8 required content elements in all 34 files.** Every file has exactly one `# Task ` heading, one `**Severity:**`, one `**Vector:**`, one `**Files:**`, one `**Evidence:**`, one `## Description`, one `## Proposed change`, one `## Acceptance criteria`. No duplicates, no missing fields. PASS.
+
+2. **All 8 investigation vectors appear at least once.** Distribution above shows every vector represented. The §3 coverage map in `phase-7/tasks.md:206-215` matches the actual file distribution. PASS.
+
+3. **Task 01 labelled BLOCKER.** `tasks/01-ohttp-bypass-send-direct.md:3` reads `**Severity:** BLOCKER`. It is the sole BLOCKER on disk and in the README index. Cross-refs P6-1 and C-4 cited. README "Blockers for production use" section links to it. PASS.
+
+4. **Task 32 escalated to HIGH with original/new classification documented.** `tasks/32-make-effective-direct-base-url-private.md:9-11` contains an explicit Evidence sub-block with `Original classification: IMPROVEMENT`, `New classification: HIGH`, and a multi-sentence escalation rationale tying the public getter to the BLOCKER blast-radius and the wallet unlinkability requirement. README index row at `README.md:36` shows `HIGH`, matching the in-file classification. PASS.
+
+5. **Task 13 cross-refs and §4 logging constraints.** `tasks/13-add-structured-observability-hooks.md:7` cites P6-5, P6-6, P6-8, and T-X1 (row 22 note), explicitly states the gap at file 22 is intentional. Lines 17–21 reproduce the §4 logging constraints (six "never log" items and the safe-to-log allow-list). Acceptance criteria require the constraints be reproduced verbatim in the new observability interface's doc comment. PASS.
+
+6. **README index table — all 34 files, correct severity labels.** Index table has exactly 34 data rows. File numbers in links match files on disk. Severity column tally matches per-file severity tags. Task 32 is correctly listed as `HIGH` (post-escalation). PASS.
+
+7. **README executive summary takes a direct stance.** `README.md:5`: "…must not be used in production until the 1 BLOCKER and 21 HIGH items below are resolved." Direct, named counts, not hedged. PRD constraint 9 satisfied. PASS.
+
+8. **Repo-relative paths only.** Grep for `/Users/`, `/home/`, `C:\` across all 34 task files and `README.md` returned no matches. All file citations use repo-relative paths (e.g., `lib/src/ohttp_client.dart:52`, `lib/src/hpke.dart`). PASS.
+
+9. **Gap at file 22 intentional and documented.** Three independent traces (README, task 13 file, PRD constraint 4). PASS.
+
+## Findings
+
+### Blocking
+None.
+
+### Important
+None.
+
+### Nice-to-have
+
+1. **README ordering — task 32 sits at the end of the HIGH block after task 21.** Internally consistent (task 32 is HIGH, belongs in the HIGH block) and the §2 numbering convention is preserved (slug retained from its original IMPROVEMENT position), but a reader scanning the index table sees a numeric jump `21 → 32 → 23 → 24…`. A one-line inline note next to the task-32 row ("Task 32 keeps its IMPROVEMENT-block slug after being escalated to HIGH; see in-file escalation rationale") would remove the only piece of ordering surprise. Cosmetic; not a Phase 7 fix.
+
+2. **Executive summary IMPROVEMENT count is "13" but the index table has 12 IMPROVEMENT rows.** `README.md:5` mentions "13 IMPROVEMENT items" while the index table lists 12 IMPROVEMENT rows (task 32 moved to HIGH). Arithmetic still resolves to 34 across all severities, and the production-readiness stance counts (1 BLOCKER + 21 HIGH) are correct, so the document is internally consistent on the load-bearing numbers. The off-by-one in the IMPROVEMENT prose count is purely cosmetic.
+
+## Tasklist updates
+
+No `## Code Review Fixes` section is appended to `specs/.current/AW-2865/phase-7/tasks.md`. The two nice-to-have items above do not meet the blocking/important threshold under ticket-mode rules. The "PR review approval" checkbox is not unchecked.
+
+## Files referenced
+
+- specs/.current/AW-2865/phase-7/prd.md
+- specs/.current/AW-2865/phase-7/plan.md
+- specs/.current/AW-2865/phase-7/tasks.md
+- specs/.current/AW-2865/tasks/README.md
+- specs/.current/AW-2865/tasks/01-ohttp-bypass-send-direct.md
+- specs/.current/AW-2865/tasks/13-add-structured-observability-hooks.md
+- specs/.current/AW-2865/tasks/32-make-effective-direct-base-url-private.md
+- specs/.current/AW-2865/tasks/04-zeroize-hpke-key-material.md
+- specs/.current/AW-2865/tasks/21-test-integration-gateway-stub.md
+- specs/.current/AW-2865/tasks/23-unify-unsupported-kem-exception.md
+- All other 28 task files under specs/.current/AW-2865/tasks/ (validated by aggregate grep; no per-file findings).
